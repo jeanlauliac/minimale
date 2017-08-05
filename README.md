@@ -5,16 +5,17 @@ components:
 
 ```js
 export default component HelloWorld {
-  props: {
-    name: string,
-  };
+  name: string;
 
   render() {
     return (
-      <p>Hello, {props.name}!</p>
+      <p>Hello, {this.name}!</p>
     );
   }
 
+  setName(name: string) {
+    this.name = name;
+  }
 }
 ```
 
