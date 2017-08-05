@@ -1,0 +1,13 @@
+
+export default component HelloWorld {
+  props: {
+    name: string,
+  };
+
+  render() {
+    return (
+      <p>Hello, {props.name}!</p>
+    );
+  }
+
+}

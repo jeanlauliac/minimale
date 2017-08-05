@@ -1,0 +1,12 @@
+{
+  "name": "minimale",
+  "version": "0.1.0",
+  "description": "🦋 Generate tiny JavaScript from a high-level user interface description",
+  "main": "index.js",
+  "author": "Jean Lauliac <jean@lauliac.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@jeanlauliac/upd": "^0.3.6",
+    "@jeanlauliac/upd-configure": "^0.1.0"
+  }
+}
