@@ -1,0 +1,61 @@
+%{
+#include <cstdio>
+#include <iostream>
+using namespace std;
+
+extern "C" int yylex();
+extern "C" int yyparse();
+void yyerror(const char *s);
+%}
+
+%union {
+  int ival;
+  float fval;
+  char *sval;
+}
+
+%token COLON
+%token COMMA
+%token COMPONENT
+%token DEFAULT
+%token EXPORT
+%token LEFT_BRACE
+%token LEFT_PAREN
+%token RETURN
+%token RIGHT_BRACE
+%token RIGHT_PAREN
+%token SEMICOLON
+
+%token <ival> INT
+%token <fval> FLOAT
+%token <sval> IDENTIFIER
+
+%%
+unit: statements;
+statements: statements statement;
+statement:
+  EXPORT DEFAULT COMPONENT IDENTIFIER LEFT_BRACE
+    component_statements
+  RIGHT_BRACE
+  ;
+component_statements: component_statements component_statement;
+component_statement: component_function | component_field;
+component_function:
+  IDENTIFIER LEFT_PAREN RIGHT_PAREN LEFT_BRACE
+    function_statements
+  RIGHT_BRACE;
+component_field: IDENTIFIER COLON type_annotation;
+type_annotation: LEFT_BRACE object_field_annotations RIGHT_BRACE;
+object_field_annotations:
+    object_field_annotations COMMA object_field_annotation
+  | object_field_annotation;
+function_statements: function_statements function_statement;
+function_statement: RETURN expression SEMICOLON;
+expression:
+    LEFT_PAREN expression RIGHT_PAREN
+  | xml_expression;
+xml_expression: matched_xml_tag;
+matched_xml_tag:
+  LEFT_CHEVRON IDENTIFIER RIGHT_CHEVRON
+  LEFT_CHEVRON SLASH IDENTIFIER RIGHT_CHEVRON;
+%%

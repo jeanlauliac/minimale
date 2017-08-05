@@ -1,12 +1,28 @@
 %option noyywrap
 %{
+#include "parsing.bs.hpp"
 #include <iostream>
 using namespace std;
 #define YY_DECL extern "C" int yylex()
 %}
 %%
 [ \t\n]         ;
-[0-9]+\.[0-9]+  { cout << "Found a floating-point number:" << yytext << endl; }
-[0-9]+          { cout << "Found an integer:" << yytext << endl; }
-[a-zA-Z0-9]+    { cout << "Found a string: " << yytext << endl; }
+export          { return EXPORT; }
+default         { return DEFAULT; }
+component       { return COMPONENT; }
+return          { return RETURN; }
+\{              { return LEFT_BRACE; }
+\}              { return RIGHT_BRACE; }
+:               { return COLON; }
+,               { return COMMA; }
+;               { return SEMICOLON; }
+\(              { return LEFT_PAREN; }
+\)              { return RIGHT_PAREN; }
+
+[0-9]+\.[0-9]+  { yylval.fval = atof(yytext); return FLOAT; }
+[0-9]+          { yylval.ival = atoi(yytext); return INT; }
+[a-zA-Z][a-zA-Z0-9]*    {
+  yylval.sval = strdup(yytext);
+  return IDENTIFIER;
+}
 %%
