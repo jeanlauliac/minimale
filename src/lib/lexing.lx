@@ -4,25 +4,40 @@
 #include <iostream>
 using namespace std;
 #define YY_DECL extern "C" int yylex()
+bool yyxmltext = false;
+static int keyword(int token);
 %}
 %%
-[ \t\n]         ;
-export          { return EXPORT; }
-default         { return DEFAULT; }
-component       { return COMPONENT; }
-return          { return RETURN; }
-\{              { return LEFT_BRACE; }
-\}              { return RIGHT_BRACE; }
-:               { return COLON; }
-,               { return COMMA; }
-;               { return SEMICOLON; }
-\(              { return LEFT_PAREN; }
-\)              { return RIGHT_PAREN; }
+[ \t\n]         {
+  if (yyxmltext) {
+    yylval.sval = strdup(yytext);
+    return XML_TEXT_FRAGMENT;
+  }
+};
+\/\/.*\n        ;
+export          { return keyword(EXPORT); }
+default         { return keyword(DEFAULT); }
+component       { return keyword(COMPONENT); }
+return          { return keyword(RETURN); }
 
 [0-9]+\.[0-9]+  { yylval.fval = atof(yytext); return FLOAT; }
 [0-9]+          { yylval.ival = atoi(yytext); return INT; }
 [a-zA-Z][a-zA-Z0-9]*    {
   yylval.sval = strdup(yytext);
-  return IDENTIFIER;
+  return yyxmltext ? XML_TEXT_FRAGMENT : IDENTIFIER;
+}
+\{              { return '{'; }
+\<              { return '<'; }
+.               {
+  if (yyxmltext) {
+    yylval.sval = strdup(yytext);
+    return XML_TEXT_FRAGMENT;
+  }
+  return *(unsigned char*)yytext;
 }
 %%
+static int keyword(int token) {
+  if (!yyxmltext) return token;
+  yylval.sval = strdup(yytext);
+  return XML_TEXT_FRAGMENT;
+}
