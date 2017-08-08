@@ -30,3 +30,10 @@ const hw = new HelloWorld(document.getElementById('root'), {name: 'world'});
 // That changes the node containing the name directly.
 hw.setName('beep');
 ```
+
+## Development
+
+    yarn
+    ./configure.js
+    upd dist/minimale && dist/minimale examples/HelloWorld.mn
+
