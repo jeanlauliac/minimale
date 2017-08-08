@@ -10,7 +10,7 @@ function getFlexCli() {
   const binPath = execSync('which flex', {encoding: 'utf8'}).split('\n')[0];
   const version =execSync(`${binPath} --version`, {encoding: 'utf8'})
     .split('\n')[0];
-  if (!/^flex 2.5/.test(version)) {
+  if (!/^flex 2\.6\.4/.test(version)) {
     throw new Error('Flex 2.5 is required');
   }
   return manifest.cli_template(binPath, [
@@ -22,7 +22,7 @@ function getBisonCli() {
   const binPath = execSync('which bison', {encoding: 'utf8'}).split('\n')[0];
   const version = execSync(`${binPath} --version`, {encoding: 'utf8'})
     .split('\n')[0];
-  if (!/^bison \(GNU Bison\) 2\.3$/.test(version)) {
+  if (!/^bison \(GNU Bison\) 3\.0\.4$/.test(version)) {
     throw new Error('GNU Bison 2.3 is required');
   }
   return manifest.cli_template(binPath, [
@@ -70,7 +70,7 @@ const compile_flex_cpp_cli = manifest.cli_template('clang++', [
 
 const compiled_flex_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_flex_files,
-], `${BUILD_DIR}/($1).o`);
+], `${BUILD_DIR}/($1).o`, [compiled_bison_files]);
 
 const compiled_bison_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_bison_files,

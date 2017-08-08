@@ -1,31 +1,29 @@
-%{
-#include <cstdio>
-#include <iostream>
-using namespace std;
-
-extern "C" int yylex();
-extern "C" int yyparse();
-extern bool yyxmltext;
-void yyerror(const char *s);
-%}
-
-%union {
-  int ival;
-  float fval;
-  char *sval;
-}
+%language "c++"
+%require "3.0.4"
+%define api.value.type variant
+%define parse.trace
+%define parse.error verbose
 
 %token COMPONENT
 %token DEFAULT
 %token EXPORT
 %token RETURN
 
-%token <ival> INT
-%token <fval> FLOAT
-%token <sval> IDENTIFIER
-%token <sval> XML_TEXT_FRAGMENT
+%token <int> INT
+%token <float> FLOAT
+%token <std::string> IDENTIFIER
+%token <std::string> XML_TEXT_FRAGMENT
 
 %start unit
+
+%code {
+  #include <cstdio>
+  #include <iostream>
+
+  int yylex(yy::parser::semantic_type* yylval);
+  extern bool yyxmltext;
+  void yyerror(const char *s);
+}
 
 %%
 unit: statements;
@@ -61,6 +59,7 @@ expression:
   | expression '.' IDENTIFIER
   | xml_expression;
 xml_expression: matched_xml_tag;
+/* use http://www.gnu.org/software/bison/manual/bison.html#Lexical-Tie_002dins */
 matched_xml_tag:
   '<' IDENTIFIER '>' { yyxmltext = true; }
   xml_text
@@ -72,3 +71,7 @@ xml_text:
 xml_interpolation:
   '{' { yyxmltext = false; } expression '}' { yyxmltext = true; }
 %%
+
+void yy::parser::error(const std::string& m) {
+  std::cerr << m << std::endl;
+}

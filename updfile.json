@@ -1,7 +1,7 @@
 {
   "command_line_templates": [
     {
-      "binary_path": "/usr/bin/flex",
+      "binary_path": "/usr/local/opt/flex/bin/flex",
       "arguments": [
         {
           "literals": [
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "binary_path": "/usr/bin/bison",
+      "binary_path": "/usr/local/opt/bison/bin/bison",
       "arguments": [
         {
           "literals": [
@@ -168,7 +168,11 @@
       "output": ".build_files/($1).o"
     },
     {
-      "dependencies": [],
+      "dependencies": [
+        {
+          "rule_ix": 1
+        }
+      ],
       "command_line_ix": 3,
       "inputs": [
         {

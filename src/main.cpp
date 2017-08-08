@@ -2,7 +2,6 @@
 #include <iostream>
 #include <memory>
 
-extern "C" int yyparse();
 extern FILE* yyin;
 
 namespace minimale {
@@ -16,17 +15,11 @@ int run(int argc, char *argv[]) {
   }
   yyin = file.get();
 
-  do {
-    yyparse();
-  } while (!feof(yyin));
-
-  return 0;
+  yy::parser pr;
+  pr.set_debug_level(true);
+  return pr.parse();
 }
 
-}
-
-void yyerror(const char *s) {
-  throw std::runtime_error(std::string("parse error: ") + s);
 }
 
 int main(int argc, char *argv[]) {

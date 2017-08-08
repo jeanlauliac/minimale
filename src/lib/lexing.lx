@@ -1,43 +1,58 @@
-%option noyywrap
+%option noyywrap nounput batch noinput
 %{
 #include "parsing.bs.hpp"
 #include <iostream>
 using namespace std;
-#define YY_DECL extern "C" int yylex()
+#define YY_DECL int yylex(yy::parser::semantic_type* yylval)
+static int keyword(yy::parser::semantic_type* yylval, int token);
 bool yyxmltext = false;
-static int keyword(int token);
 %}
 %%
+
 [ \t\n]         {
   if (yyxmltext) {
-    yylval.sval = strdup(yytext);
-    return XML_TEXT_FRAGMENT;
+    yylval->build(yytext);
+    return yy::parser::token::XML_TEXT_FRAGMENT;
   }
 };
-\/\/.*\n        ;
-export          { return keyword(EXPORT); }
-default         { return keyword(DEFAULT); }
-component       { return keyword(COMPONENT); }
-return          { return keyword(RETURN); }
 
-[0-9]+\.[0-9]+  { yylval.fval = atof(yytext); return FLOAT; }
-[0-9]+          { yylval.ival = atoi(yytext); return INT; }
-[a-zA-Z][a-zA-Z0-9]*    {
-  yylval.sval = strdup(yytext);
-  return yyxmltext ? XML_TEXT_FRAGMENT : IDENTIFIER;
+\/\/.*\n        ;
+export          { return keyword(yylval, yy::parser::token::EXPORT); }
+default         { return keyword(yylval, yy::parser::token::DEFAULT); }
+component       { return keyword(yylval, yy::parser::token::COMPONENT); }
+return          { return keyword(yylval, yy::parser::token::RETURN); }
+
+[0-9]+\.[0-9]+  {
+  yylval->build(yytext);
+  return yy::parser::token::FLOAT;
 }
+
+[0-9]+          {
+  yylval->build(yytext);
+  return yy::parser::token::INT;
+}
+
+[a-zA-Z][a-zA-Z0-9]*    {
+  yylval->build(yytext);
+  return yyxmltext
+    ? yy::parser::token::XML_TEXT_FRAGMENT
+    : yy::parser::token::IDENTIFIER;
+}
+
 \{              { return '{'; }
 \<              { return '<'; }
+
 .               {
   if (yyxmltext) {
-    yylval.sval = strdup(yytext);
-    return XML_TEXT_FRAGMENT;
+    yylval->build(yytext);
+    return yy::parser::token::XML_TEXT_FRAGMENT;
   }
   return *(unsigned char*)yytext;
 }
+
 %%
-static int keyword(int token) {
+static int keyword(yy::parser::semantic_type* yylval, int token) {
   if (!yyxmltext) return token;
-  yylval.sval = strdup(yytext);
-  return XML_TEXT_FRAGMENT;
+  yylval->build(yytext);
+  return yy::parser::token::XML_TEXT_FRAGMENT;
 }
