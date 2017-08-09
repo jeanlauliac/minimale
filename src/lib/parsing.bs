@@ -14,30 +14,38 @@
 %token <std::string> IDENTIFIER
 %token <std::string> XML_TEXT_FRAGMENT
 
+%type <std::vector<minimale::statement_id>> statements
+%type <minimale::statement_id> statement
+
+%param { minimale::store& st }
 %start unit
+
+%code requires {
+  #include "../../../src/lib/unit.h"
+}
 
 %code {
   #include <cstdio>
   #include <iostream>
 
-  int yylex(yy::parser::semantic_type* yylval);
+  int yylex(yy::parser::semantic_type* yylval, minimale::store& st);
   extern bool yyxmltext;
   void yyerror(const char *s);
 }
 
 %%
-unit: statements;
+unit: statements { st.unit.statements = std::move($1); };
 statements:
-    statements statement
-  | ;
+    statements statement { $$.push_back($2); }
+  | %empty {};
 statement:
-  EXPORT DEFAULT COMPONENT IDENTIFIER '{'
+  EXPORT DEFAULT COMPONENT IDENTIFIER[name] '{'
     component_statements
   '}'
-  ;
+  { $$ = st.create_component($name); };
 component_statements:
     component_statements component_statement
-  | ;
+  | %empty;
 component_statement: component_function | component_field;
 component_function:
   IDENTIFIER '(' ')' '{'
@@ -47,11 +55,11 @@ component_field: IDENTIFIER ':' object_type_annotation ';';
 object_type_annotation: '{' object_field_annotations '}';
 object_field_annotations:
     object_field_annotations object_field_annotation
-  | ;
+  | %empty;
 object_field_annotation: IDENTIFIER ':' IDENTIFIER ',';
 function_statements:
     function_statements function_statement
-  | ;
+  | %empty;
 function_statement: RETURN expression ';';
 expression:
     '(' expression ')'
@@ -67,7 +75,7 @@ matched_xml_tag:
 xml_text:
     xml_text XML_TEXT_FRAGMENT
   | xml_text xml_interpolation
-  | ;
+  | %empty;
 xml_interpolation:
   '{' { yyxmltext = false; } expression '}' { yyxmltext = true; }
 %%

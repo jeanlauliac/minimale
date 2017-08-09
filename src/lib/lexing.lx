@@ -1,9 +1,10 @@
 %option noyywrap nounput batch noinput
 %{
 #include "parsing.bs.hpp"
+#include "../../../src/lib/unit.h"
 #include <iostream>
 using namespace std;
-#define YY_DECL int yylex(yy::parser::semantic_type* yylval)
+#define YY_DECL int yylex(yy::parser::semantic_type* yylval, minimale::store& st)
 static int keyword(yy::parser::semantic_type* yylval, int token);
 bool yyxmltext = false;
 %}
@@ -11,7 +12,7 @@ bool yyxmltext = false;
 
 [ \t\n]         {
   if (yyxmltext) {
-    yylval->build(yytext);
+    yylval->build<std::string>() = yytext;
     return yy::parser::token::XML_TEXT_FRAGMENT;
   }
 };
@@ -23,17 +24,17 @@ component       { return keyword(yylval, yy::parser::token::COMPONENT); }
 return          { return keyword(yylval, yy::parser::token::RETURN); }
 
 [0-9]+\.[0-9]+  {
-  yylval->build(yytext);
+  yylval->build(atof(yytext));
   return yy::parser::token::FLOAT;
 }
 
 [0-9]+          {
-  yylval->build(yytext);
+  yylval->build(atoi(yytext));
   return yy::parser::token::INT;
 }
 
 [a-zA-Z][a-zA-Z0-9]*    {
-  yylval->build(yytext);
+  yylval->build<std::string>() = yytext;
   return yyxmltext
     ? yy::parser::token::XML_TEXT_FRAGMENT
     : yy::parser::token::IDENTIFIER;
@@ -44,7 +45,7 @@ return          { return keyword(yylval, yy::parser::token::RETURN); }
 
 .               {
   if (yyxmltext) {
-    yylval->build(yytext);
+    yylval->build<std::string>() = yytext;
     return yy::parser::token::XML_TEXT_FRAGMENT;
   }
   return *(unsigned char*)yytext;
@@ -53,6 +54,6 @@ return          { return keyword(yylval, yy::parser::token::RETURN); }
 %%
 static int keyword(yy::parser::semantic_type* yylval, int token) {
   if (!yyxmltext) return token;
-  yylval->build(yytext);
+  yylval->build<std::string>() = yytext;
   return yy::parser::token::XML_TEXT_FRAGMENT;
 }
