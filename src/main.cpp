@@ -123,7 +123,7 @@ void write_text_node_creator(
 ) {
   os
     << indent << var_name
-    << ".appendChild(document.createTextNode('"
+    << ".appendChild(d.createTextNode('"
     << trim_xml_whitespace(text)
     << "'));" << std::endl;
 }
@@ -142,7 +142,7 @@ void write_node_creator(
   const auto var_name = "e" + std::to_string(xp.value);
   const auto& tag = st.xml_tags[xp.value];
   os
-    << indent << "const " << var_name << " = document.createElement('"
+    << indent << "const " << var_name << " = d.createElement('"
       << tag.tag_name << "');" << std::endl
     << indent << root_var_name << ".appendChild(" << var_name << ");"
       << std::endl;
@@ -183,7 +183,8 @@ void write_typescript(const store& st, std::ostream& os) {
         << "  private root: HTMLElement;" << std::endl << std::endl
         << "  constructor(root: HTMLElement, initialProps: "
           << props_type_name << ") {" << std::endl
-        << "    this.root = root;" << std::endl;
+        << "    this.root = root;" << std::endl
+        << "    const d = root.ownerDocument;" << std::endl;
       write_node_creator(st, cs.render, "    ", "root", os);
       os
         << "  }" << std::endl << std::endl
