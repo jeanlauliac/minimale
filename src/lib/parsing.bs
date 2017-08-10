@@ -25,6 +25,12 @@
 %type <minimale::object_type_annotation_field> object_field_annotation
 %type <std::vector<minimale::function_statement_id>> function_statements
 %type <minimale::function_statement_id> function_statement
+%type <minimale::expression_id> expression
+%type <minimale::expression_id> xml_expression
+%type <minimale::expression_id> matched_xml_tag
+%type <std::vector<minimale::xml_fragment_id>> xml_fragments
+%type <minimale::xml_fragment_id> xml_fragment
+%type <minimale::expression_id> xml_interpolation
 
 %param { minimale::store& st }
 %start unit
@@ -96,25 +102,51 @@ function_statements:
 
 function_statement:
   RETURN expression ';'
-  { $$ = st.create_return_statement(); };
+  { $$ = st.create_return_statement($2); };
 
 expression:
-    '(' expression ')'
-  | IDENTIFIER
-  | expression '.' IDENTIFIER
-  | xml_expression;
-xml_expression: matched_xml_tag;
-/* use http://www.gnu.org/software/bison/manual/bison.html#Lexical-Tie_002dins */
+    '(' expression ')' { $$ = $2; }
+  | IDENTIFIER { $$ = st.create_reference($1); }
+  | expression '.' IDENTIFIER { $$ = st.create_member_access($1, $3); }
+  | xml_expression { $$ = $1; };
+
+xml_expression: matched_xml_tag { $$ = $1; };
+
+/**
+ * Inside an XML tag, we need to affect how the lexing is done, because
+ * identifiers, keywords, operators, etc. should no longer be special, but
+ * instead be simple text fragments. To do so we change a global (eww, we could
+ * use a driver class instead) to signify to the lexer to return
+ * XML_TEXT_FRAGMENT when it matches the tokens instead of what they would be
+ * otherwise.
+ *
+ * See http://www.gnu.org/software/bison/manual/bison.html#Lexical-Tie_002dins
+ */
 matched_xml_tag:
-  '<' IDENTIFIER '>' { yyxmltext = true; }
-  xml_text
-  '<' { yyxmltext = false; } '/' IDENTIFIER '>';
-xml_text:
-    xml_text XML_TEXT_FRAGMENT
-  | xml_text xml_interpolation
-  | %empty;
+  '<' IDENTIFIER[tag_name] '>' { yyxmltext = true; }
+  xml_fragments[frs]
+  '<' { yyxmltext = false; } '/' IDENTIFIER[end_name] '>'
+  {
+    const auto& tag_name = $tag_name;
+    if (tag_name != $end_name) {
+      // Should be made to report line/column, etc.
+      throw std::runtime_error("mismatched tags");
+    }
+    $$ = st.create_xml_tag(tag_name, std::move($frs));
+  };
+
+xml_fragments:
+    xml_fragments xml_fragment { ($$ = std::move($1)).push_back($2); }
+  | %empty {};
+
+xml_fragment:
+    XML_TEXT_FRAGMENT { $$ = st.create_xml_text_fragment($1); }
+  | xml_interpolation { $$ = st.create_xml_interpolation($1); };
+
 xml_interpolation:
-  '{' { yyxmltext = false; } expression '}' { yyxmltext = true; }
+  '{' { yyxmltext = false; } expression[exp] '}' { yyxmltext = true; }
+  { $$ = $exp; };
+
 %%
 
 void yy::parser::error(const std::string& m) {
