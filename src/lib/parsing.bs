@@ -16,12 +16,20 @@
 
 %type <std::vector<minimale::statement_id>> statements
 %type <minimale::statement_id> statement
+%type <std::vector<minimale::component_statement_id>> component_statements
+%type <minimale::component_statement_id> component_statement
+%type <minimale::component_statement_id> component_function
+%type <minimale::component_statement_id> component_field
+%type <minimale::type_annotation_id> type_annotation
+%type <std::vector<minimale::object_type_annotation_field>> object_field_annotations
+%type <minimale::object_type_annotation_field> object_field_annotation
 
 %param { minimale::store& st }
 %start unit
 
 %code requires {
   #include "../../../src/lib/unit.h"
+  #include <vector>
 }
 
 %code {
@@ -35,31 +43,54 @@
 
 %%
 unit: statements { st.unit.statements = std::move($1); };
+
 statements:
-    statements statement { $$.push_back($2); }
+    statements statement { ($$ = std::move($1)).push_back($2); }
   | %empty {};
+
 statement:
   EXPORT DEFAULT COMPONENT IDENTIFIER[name] '{'
-    component_statements
+    component_statements[statements]
   '}'
-  { $$ = st.create_component($name); };
+  { $$ = st.create_component($name, std::move($statements)); };
+
 component_statements:
     component_statements component_statement
-  | %empty;
-component_statement: component_function | component_field;
+    { ($$ = std::move($1)).push_back($2); }
+  | %empty {};
+
+component_statement:
+    component_function { $$ = $1; }
+  | component_field { $$ = $1; };
+
 component_function:
-  IDENTIFIER '(' ')' '{'
+  IDENTIFIER[name] '(' ')' '{'
     function_statements
-  '}';
-component_field: IDENTIFIER ':' object_type_annotation ';';
-object_type_annotation: '{' object_field_annotations '}';
+  '}'
+  { $$ = st.create_component_function($name); };
+
+component_field:
+  IDENTIFIER[name] ':' type_annotation[type] ';'
+  { $$ = st.create_component_field($name, $type); };
+
+type_annotation:
+    IDENTIFIER { $$ = st.create_literal_type_annotation($1); }
+  | '{' object_field_annotations[fields] '}'
+    { $$ = st.create_object_type_annotation(std::move($fields)); };
+
 object_field_annotations:
     object_field_annotations object_field_annotation
-  | %empty;
-object_field_annotation: IDENTIFIER ':' IDENTIFIER ',';
+    { ($$ = std::move($1)).push_back($2); }
+  | %empty {};
+
+object_field_annotation:
+  IDENTIFIER[name] ':' type_annotation[type] ','
+  { $$ = minimale::object_type_annotation_field($name, $type); };
+
 function_statements:
     function_statements function_statement
   | %empty;
+
 function_statement: RETURN expression ';';
 expression:
     '(' expression ')'
