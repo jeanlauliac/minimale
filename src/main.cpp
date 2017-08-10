@@ -4,6 +4,8 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <sstream>
+#include <string>
 
 extern FILE* yyin;
 
@@ -90,13 +92,80 @@ void write_props_type(
   os << "}" << std::endl << std::endl;
 }
 
-void write_mount_impl(
-  const store& st,
-  const component_structure& cs,
+bool is_whitespace(char c) {
+  return c == ' ' || c == '\n' || c == '\t';
+}
+
+std::string trim_xml_whitespace(const std::string& s) {
+  std::ostringstream os;
+  size_t i = 0;
+  while (i < s.size() && is_whitespace(s[i])) ++i;
+  bool need_space = false;
+  while (i < s.size()) {
+    char c = s[i];
+    if (is_whitespace(c)) {
+      need_space = true;
+    } else {
+      if (need_space) os << ' ';
+      os << c;
+      need_space = false;
+    }
+    ++i;
+  }
+  return os.str();
+}
+
+void write_text_node_creator(
+  const std::string& var_name,
   const std::string& indent,
+  const std::string& text,
   std::ostream& os
 ) {
-  
+  os
+    << indent << var_name
+    << ".appendChild(document.createTextNode('"
+    << trim_xml_whitespace(text)
+    << "'));" << std::endl;
+}
+
+void write_node_creator(
+  const store& st,
+  const expression_id& xp,
+  const std::string& indent,
+  const std::string& root_var_name,
+  std::ostream& os
+) {
+  if (xp.type != expression_type::xml_tag) {
+    // TODO
+    return;
+  }
+  const auto var_name = "e" + std::to_string(xp.value);
+  const auto& tag = st.xml_tags[xp.value];
+  os
+    << indent << "const " << var_name << " = document.createElement('"
+      << tag.tag_name << "');" << std::endl
+    << indent << root_var_name << ".appendChild(" << var_name << ");"
+      << std::endl;
+  std::ostringstream text_acc;
+  for (const auto& frg: tag.fragments) {
+    if (frg.type == xml_fragment_type::text) {
+      text_acc << st.xml_text_fragments[frg.value];
+      continue;
+    }
+    if (!text_acc.str().empty()) {
+      write_text_node_creator(var_name, indent, text_acc.str(), os);
+      text_acc.str("");
+      text_acc.clear();
+    }
+    if (frg.type != xml_fragment_type::interpolation) {
+      throw std::runtime_error("invalid fragment");
+    }
+    const auto& ixp = st.xml_interpolations[frg.value];
+    write_node_creator(st, ixp, indent, var_name, os);
+  }
+  if (!text_acc.str().empty()) {
+    write_text_node_creator(var_name, indent, text_acc.str(), os);
+  }
 }
 
 void write_typescript(const store& st, std::ostream& os) {
@@ -115,7 +184,7 @@ void write_typescript(const store& st, std::ostream& os) {
         << "  constructor(root: HTMLElement, initialProps: "
           << props_type_name << ") {" << std::endl
         << "    this.root = root;" << std::endl;
-      write_mount_impl(st, cs, "   ", os);
+      write_node_creator(st, cs.render, "    ", "root", os);
       os
         << "  }" << std::endl << std::endl
         << "  unmount(): void {" << std::endl

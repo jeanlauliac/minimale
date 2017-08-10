@@ -10,7 +10,7 @@ bool yyxmltext = false;
 %}
 %%
 
-[ \t\n]         {
+[ \t\n]+        {
   if (yyxmltext) {
     yylval->build<std::string>() = yytext;
     return yy::parser::token::XML_TEXT_FRAGMENT;
