@@ -73,6 +73,15 @@ void write_props_type(
   os << "}" << std::endl << std::endl;
 }
 
+void write_mount(
+  const store& st,
+  const component_structure& cs,
+  const std::string& indent,
+  std::ostream& os
+) {
+  
+}
+
 void write_typescript(const store& st, std::ostream& os) {
   os
     << "/* Generated with the `minimale` tool. */" << std::endl
@@ -88,7 +97,9 @@ void write_typescript(const store& st, std::ostream& os) {
         << "  private root: HTMLElement;" << std::endl << std::endl
         << "  constructor(root: HTMLElement, initialProps: "
           << props_type_name << ") {" << std::endl
-        << "    this.root = root;" << std::endl
+        << "    this.root = root;" << std::endl;
+      write_mount(st, cs, "   ", os);
+      os
         << "  }" << std::endl << std::endl
         << "  unmount(): void {" << std::endl
         << "  }" << std::endl

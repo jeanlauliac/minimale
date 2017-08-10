@@ -23,6 +23,8 @@
 %type <minimale::type_annotation_id> type_annotation
 %type <std::vector<minimale::object_type_annotation_field>> object_field_annotations
 %type <minimale::object_type_annotation_field> object_field_annotation
+%type <std::vector<minimale::function_statement_id>> function_statements
+%type <minimale::function_statement_id> function_statement
 
 %param { minimale::store& st }
 %start unit
@@ -65,9 +67,9 @@ component_statement:
 
 component_function:
   IDENTIFIER[name] '(' ')' '{'
-    function_statements
+    function_statements[sts]
   '}'
-  { $$ = st.create_component_function($name); };
+  { $$ = st.create_component_function($name, std::move($sts)); };
 
 component_field:
   IDENTIFIER[name] ':' type_annotation[type] ';'
@@ -89,9 +91,13 @@ object_field_annotation:
 
 function_statements:
     function_statements function_statement
-  | %empty;
+    { ($$ = std::move($1)).push_back($2); }
+  | %empty {};
 
-function_statement: RETURN expression ';';
+function_statement:
+  RETURN expression ';'
+  { $$ = st.create_return_statement(); };
+
 expression:
     '(' expression ')'
   | IDENTIFIER

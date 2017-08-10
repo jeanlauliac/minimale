@@ -22,6 +22,9 @@ typedef id_of<component_statement_type> component_statement_id;
 enum class type_annotation_type { object, literal };
 typedef id_of<type_annotation_type> type_annotation_id;
 
+enum class function_statement_type { return_ };
+typedef id_of<function_statement_type> function_statement_id;
+
 struct component {
   component(
     const std::string& name,
@@ -41,8 +44,12 @@ struct field {
 };
 
 struct function {
-  function(const std::string& name): name(name) {}
+  function(
+    const std::string& name,
+    std::vector<minimale::function_statement_id>&& sts
+  ): name(name), sts(std::move(sts)) {}
   std::string name;
+  std::vector<minimale::function_statement_id> sts;
 };
 
 struct unit {
@@ -70,6 +77,10 @@ struct literal_type_annotation {
   std::string identifier;
 };
 
+struct return_statement {
+
+};
+
 struct store {
   unit unit;
   std::vector<component> components;
@@ -77,6 +88,7 @@ struct store {
   std::vector<function> functions;
   std::vector<literal_type_annotation> literal_type_annotations;
   std::vector<object_type_annotation> object_type_annotations;
+  std::vector<return_statement> return_statements;
 
   statement_id create_component(
     const std::string& name,
@@ -86,11 +98,15 @@ struct store {
     const std::string& name,
     const type_annotation_id& type_annotation
   );
-  component_statement_id create_component_function(const std::string& name);
+  component_statement_id create_component_function(
+    const std::string& name,
+    std::vector<minimale::function_statement_id>&& sts
+  );
   type_annotation_id create_literal_type_annotation(const std::string& ident);
   type_annotation_id create_object_type_annotation(
     std::vector<object_type_annotation_field>&& fields
   );
+  function_statement_id create_return_statement();
 };
 
 }
