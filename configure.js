@@ -76,7 +76,7 @@ const compiled_bison_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_bison_files,
 ], `${BUILD_DIR}/($1).o`);
 
-manifest.rule(
+const minimale_binary = manifest.rule(
   manifest.cli_template('clang++', [
     {literals: ["-o"], variables: ["output_file"]},
     {
@@ -87,6 +87,28 @@ manifest.rule(
   ]),
   [compiled_cpp_files, compiled_flex_cpp_files, compiled_bison_cpp_files],
   "dist/minimale"
+);
+
+const compile_mn_cli = manifest.cli_template('dist/minimale', [
+  {variables: ["input_files", "output_file", "dependency_file"]},
+  {literals: ['dist/minimale']}
+]);
+
+const typescript_examples = manifest.rule(compile_mn_cli, [
+  manifest.source('examples/(*).mn'),
+], `${BUILD_DIR}/example/($1).ts`, [minimale_binary]);
+
+const compile_typescript_cli = manifest.cli_template('node_modules/.bin/tsc', [
+  {
+    literals: ['--module', 'CommonJS', '--outDir', 'dist/example'],
+    variables: ["input_files"],
+  },
+]);
+
+manifest.rule(
+  compile_typescript_cli,
+  [typescript_examples],
+  `dist/example/$1.js`
 );
 
 manifest.export(__dirname);

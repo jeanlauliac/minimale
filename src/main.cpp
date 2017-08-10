@@ -1,6 +1,7 @@
 #include "../.build_files/src/lib/parsing.bs.hpp"
 #include "lib/unit.h"
 #include <iostream>
+#include <fstream>
 #include <memory>
 
 extern FILE* yyin;
@@ -25,9 +26,10 @@ store read_store(const std::string file_path) {
   return st;
 }
 
-void write_javascript(const store& st, std::ostream& os) {
-  os << "/* Generated with the `minimale` tool. */" << std::endl;
-  os <<"'use strict';" << std::endl << std::endl;
+void write_typescript(const store& st, std::ostream& os) {
+  os
+    << "/* Generated with the `minimale` tool. */" << std::endl
+    << std::endl;
   for (auto st_id: st.unit.statements) {
     if (st_id.type == statement_type::component) {
       component cp = st.components[st_id.value];
@@ -36,11 +38,12 @@ void write_javascript(const store& st, std::ostream& os) {
         << "export type " << modelTypeName << " = {" << std::endl
         << "}" << std::endl << std::endl
         << "export default class " << cp.name << " {" << std::endl
-        << "  _root: HTMLElement" << std::endl << std::endl
-        << "  static mount(root: HTMLElement, model: "
-          << modelTypeName << "): void {" << std::endl
-        << "    this._root = root;" << std::endl
-        << "    this._model = model;" << std::endl
+        << "  private root: HTMLElement;" << std::endl
+        << "  private model: " << modelTypeName << ";" << std::endl << std::endl
+        << "  constructor(root: HTMLElement, model: "
+          << modelTypeName << ") {" << std::endl
+        << "    this.root = root;" << std::endl
+        << "    this.model = model;" << std::endl
         << "  }" << std::endl << std::endl
         << "  unmount(): void {" << std::endl
         << "  }" << std::endl
@@ -50,11 +53,17 @@ void write_javascript(const store& st, std::ostream& os) {
 }
 
 int run(int argc, char *argv[]) {
-  if (argc < 2) {
+  if (argc < 5) {
     throw std::runtime_error("input file must be specified");
   }
   store st = read_store(argv[1]);
-  write_javascript(st, std::cout);
+  std::ofstream of;
+  of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  of.open(argv[2]);
+  write_typescript(st, of);
+  of.close();
+  of.open(argv[3]);
+  of << argv[2] << ": " << argv[4] << std::endl;
   return 0;
 }
 

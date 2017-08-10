@@ -8,5 +8,8 @@
   "dependencies": {
     "@jeanlauliac/upd": "^0.3.6",
     "@jeanlauliac/upd-configure": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^2.4.2"
   }
 }

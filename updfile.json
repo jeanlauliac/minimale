@@ -125,12 +125,46 @@
           ]
         }
       ]
+    },
+    {
+      "binary_path": "dist/minimale",
+      "arguments": [
+        {
+          "variables": [
+            "input_files",
+            "output_file",
+            "dependency_file"
+          ]
+        },
+        {
+          "literals": [
+            "dist/minimale"
+          ]
+        }
+      ]
+    },
+    {
+      "binary_path": "node_modules/.bin/tsc",
+      "arguments": [
+        {
+          "literals": [
+            "--module",
+            "CommonJS",
+            "--outDir",
+            "dist/example"
+          ],
+          "variables": [
+            "input_files"
+          ]
+        }
+      ]
     }
   ],
   "source_patterns": [
     "(src/**/*.lx)",
     "(src/**/*.bs)",
-    "(src/**/*).cpp"
+    "(src/**/*).cpp",
+    "examples/(*).mn"
   ],
   "rules": [
     {
@@ -206,6 +240,30 @@
         }
       ],
       "output": "dist/minimale"
+    },
+    {
+      "dependencies": [
+        {
+          "rule_ix": 5
+        }
+      ],
+      "command_line_ix": 5,
+      "inputs": [
+        {
+          "source_ix": 3
+        }
+      ],
+      "output": ".build_files/example/($1).ts"
+    },
+    {
+      "dependencies": [],
+      "command_line_ix": 6,
+      "inputs": [
+        {
+          "rule_ix": 6
+        }
+      ],
+      "output": "dist/example/$1.js"
     }
   ]
 }
