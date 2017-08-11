@@ -1,0 +1,16 @@
+<html 5>
+  <head>
+    <title>HelloWorld</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.exports = {};
+    </script>
+    <script src="HelloWorld.js"></script>
+    <script>
+      const rr = document.getElementById('root');
+      new (exports["default"])(rr, {name: 'Jean'});
+    </script>
+  </body>
+</html>

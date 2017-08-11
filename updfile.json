@@ -158,13 +158,25 @@
           ]
         }
       ]
+    },
+    {
+      "binary_path": "cp",
+      "arguments": [
+        {
+          "variables": [
+            "input_files",
+            "output_file"
+          ]
+        }
+      ]
     }
   ],
   "source_patterns": [
     "(src/**/*.lx)",
     "(src/**/*.bs)",
     "(src/**/*).cpp",
-    "examples/(*).mn"
+    "examples/(*).mn",
+    "examples/(*.html)"
   ],
   "rules": [
     {
@@ -264,6 +276,16 @@
         }
       ],
       "output": "dist/example/$1.js"
+    },
+    {
+      "dependencies": [],
+      "command_line_ix": 7,
+      "inputs": [
+        {
+          "source_ix": 4
+        }
+      ],
+      "output": "dist/example/$1"
     }
   ]
 }

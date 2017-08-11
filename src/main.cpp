@@ -128,15 +128,39 @@ void write_text_node_creator(
     << "'));" << std::endl;
 }
 
+bool is_props(const store& st, const expression_id& xp) {
+  if (xp.type != expression_type::member_access) return false;
+  const auto& ma = st.member_accesses[xp.value];
+  if (ma.expression.type != expression_type::reference) return false;
+  if (ma.identifier != "props") return false;
+  const auto& ref = st.references[ma.expression.value];
+  return ref == "this";
+}
+
 void write_node_creator(
   const store& st,
   const expression_id& xp,
+  const component_structure& cs,
   const std::string& indent,
   const std::string& root_var_name,
   std::ostream& os
 ) {
-  if (xp.type != expression_type::xml_tag) {
-    // TODO
+  if (xp.type == expression_type::reference) {
+    throw std::runtime_error("cannot handle references");
+  }
+  if (xp.type == expression_type::member_access) {
+    const auto& ma = st.member_accesses[xp.value];
+    if (!is_props(st, ma.expression)) {
+      throw std::runtime_error("cannot handle other than `this.props`");
+    }
+    if (cs.props.find(ma.identifier) == cs.props.end()) {
+      throw std::runtime_error("prop `" + ma.identifier + "` unknown");
+    }
+    os
+      << indent << root_var_name
+      << ".appendChild(d.createTextNode("
+      << "initialProps." << ma.identifier
+      << "));" << std::endl;
     return;
   }
   const auto var_name = "e" + std::to_string(xp.value);
@@ -161,7 +185,7 @@ void write_node_creator(
       throw std::runtime_error("invalid fragment");
     }
     const auto& ixp = st.xml_interpolations[frg.value];
-    write_node_creator(st, ixp, indent, var_name, os);
+    write_node_creator(st, ixp, cs, indent, var_name, os);
   }
   if (!text_acc.str().empty()) {
     write_text_node_creator(var_name, indent, text_acc.str(), os);
@@ -185,7 +209,7 @@ void write_typescript(const store& st, std::ostream& os) {
           << props_type_name << ") {" << std::endl
         << "    this.root = root;" << std::endl
         << "    const d = root.ownerDocument;" << std::endl;
-      write_node_creator(st, cs.render, "    ", "root", os);
+      write_node_creator(st, cs.render, cs, "    ", "root", os);
       os
         << "  }" << std::endl << std::endl
         << "  unmount(): void {" << std::endl

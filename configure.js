@@ -111,4 +111,10 @@ manifest.rule(
   `dist/example/$1.js`
 );
 
+manifest.rule(
+  manifest.cli_template('cp', [{variables: ["input_files", "output_file"]}]),
+  [manifest.source('examples/(*.html)')],
+  `dist/example/$1`
+);
+
 manifest.export(__dirname);
