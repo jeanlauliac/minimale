@@ -53,6 +53,11 @@ expression_id store::create_member_access(const expression_id& xp, const std::st
   return expression_id(expression_type::member_access, member_accesses.size() - 1);
 }
 
+expression_id store::create_string(const std::string& value) {
+  strings.emplace_back(value);
+  return expression_id(expression_type::string, strings.size() - 1);
+}
+
 expression_id store::create_xml_tag(
   const std::string& tag_name,
   std::vector<xml_fragment_id>&& fragments

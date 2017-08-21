@@ -176,6 +176,15 @@ void write_node_creator(
       << "));" << std::endl;
     return;
   }
+  if (xp.type == expression_type::string) {
+    const auto& str = st.strings[xp.value];
+    os
+      << indent << root_var_name
+      << ".appendChild(d.createTextNode('"
+      << str
+      << "'));" << std::endl;
+    return;
+  }
   const auto var_name = "e" + std::to_string(xp.value);
   const auto& tag = st.xml_tags[xp.value];
   os

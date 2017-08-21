@@ -25,7 +25,7 @@ typedef id_of<type_annotation_type> type_annotation_id;
 enum class function_statement_type { return_ };
 typedef id_of<function_statement_type> function_statement_id;
 
-enum class expression_type { reference, member_access, xml_tag };
+enum class expression_type { reference, member_access, string, xml_tag };
 typedef id_of<expression_type> expression_id;
 
 enum class xml_fragment_type { text, interpolation };
@@ -117,6 +117,7 @@ struct store {
   std::vector<xml_tag> xml_tags;
   std::vector<std::string> xml_text_fragments;
   std::vector<expression_id> xml_interpolations;
+  std::vector<std::string> strings;
 
   statement_id create_component(
     const std::string& name,
@@ -138,6 +139,7 @@ struct store {
   expression_id create_reference(const std::string& ident);
   expression_id
   create_member_access(const expression_id& xp, const std::string ident);
+  expression_id create_string(const std::string& value);
   expression_id create_xml_tag(
     const std::string& tag_name,
     std::vector<xml_fragment_id>&& fragments

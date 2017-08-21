@@ -13,6 +13,7 @@
 %token <float> FLOAT
 %token <std::string> IDENTIFIER
 %token <std::string> XML_TEXT_FRAGMENT
+%token <std::string> STRING
 
 %type <std::vector<minimale::statement_id>> statements
 %type <minimale::statement_id> statement
@@ -108,6 +109,7 @@ expression:
     '(' expression ')' { $$ = $2; }
   | IDENTIFIER { $$ = st.create_reference($1); }
   | expression '.' IDENTIFIER { $$ = st.create_member_access($1, $3); }
+  | STRING { $$ = st.create_string($1); }
   | xml_expression { $$ = $1; };
 
 xml_expression: matched_xml_tag { $$ = $1; };
@@ -152,6 +154,12 @@ xml_fragment:
         throw std::runtime_error("mismatched tags");
       }
       auto tag = st.create_xml_tag(tag_name, std::move($frs));
+      $$ = st.create_xml_interpolation(tag);
+    }
+  | '<' IDENTIFIER[tag_name] '/' '>' {
+      yyxmltext = true;
+      const auto& tag_name = $tag_name;
+      auto tag = st.create_xml_tag(tag_name, {});
       $$ = st.create_xml_interpolation(tag);
     };
 //  | '<' { yyxmltext = false; }

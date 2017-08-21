@@ -8,7 +8,8 @@ export default component HelloWorld {
     return
       <p>
         Hello, <b>{this.props.name}</b>!
-        <span>Foo.</span>
+        <br />
+        <span>{'Foo'}.</span>
       </p>;
   }
 
