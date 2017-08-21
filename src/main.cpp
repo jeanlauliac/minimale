@@ -96,10 +96,16 @@ bool is_whitespace(char c) {
   return c == ' ' || c == '\n' || c == '\t';
 }
 
-std::string trim_xml_whitespace(const std::string& s) {
+std::string trim_xml_whitespace(
+  const std::string& s,
+  bool keep_front_ws,
+  bool keep_back_ws
+) {
   std::ostringstream os;
   size_t i = 0;
-  while (i < s.size() && is_whitespace(s[i])) ++i;
+  if (!keep_front_ws) {
+    while (i < s.size() && is_whitespace(s[i])) ++i;
+  }
   bool need_space = false;
   while (i < s.size()) {
     char c = s[i];
@@ -112,6 +118,9 @@ std::string trim_xml_whitespace(const std::string& s) {
     }
     ++i;
   }
+  if (keep_back_ws && need_space) {
+    os << ' ';
+  }
   return os.str();
 }
 
@@ -119,12 +128,14 @@ void write_text_node_creator(
   const std::string& var_name,
   const std::string& indent,
   const std::string& text,
+  bool keep_front_ws,
+  bool keep_back_ws,
   std::ostream& os
 ) {
   os
     << indent << var_name
     << ".appendChild(d.createTextNode('"
-    << trim_xml_whitespace(text)
+    << trim_xml_whitespace(text, keep_front_ws, keep_back_ws)
     << "'));" << std::endl;
 }
 
@@ -171,13 +182,14 @@ void write_node_creator(
     << indent << root_var_name << ".appendChild(" << var_name << ");"
       << std::endl;
   std::ostringstream text_acc;
+  bool keep_front_ws = false;
   for (const auto& frg: tag.fragments) {
     if (frg.type == xml_fragment_type::text) {
       text_acc << st.xml_text_fragments[frg.value];
       continue;
     }
     if (!text_acc.str().empty()) {
-      write_text_node_creator(var_name, indent, text_acc.str(), os);
+      write_text_node_creator(var_name, indent, text_acc.str(), keep_front_ws, true, os);
       text_acc.str("");
       text_acc.clear();
     }
@@ -186,9 +198,10 @@ void write_node_creator(
     }
     const auto& ixp = st.xml_interpolations[frg.value];
     write_node_creator(st, ixp, cs, indent, var_name, os);
+    keep_front_ws = true;
   }
   if (!text_acc.str().empty()) {
-    write_text_node_creator(var_name, indent, text_acc.str(), os);
+    write_text_node_creator(var_name, indent, text_acc.str(), keep_front_ws, false, os);
   }
 }
 
