@@ -132,10 +132,12 @@ void write_text_node_creator(
   bool keep_back_ws,
   std::ostream& os
 ) {
+  auto str = trim_xml_whitespace(text, keep_front_ws, keep_back_ws);
+  if (str.empty()) return;
   os
     << indent << var_name
     << ".appendChild(d.createTextNode('"
-    << trim_xml_whitespace(text, keep_front_ws, keep_back_ws)
+    << str
     << "'));" << std::endl;
 }
 

@@ -41,7 +41,11 @@ return          { return keyword(yylval, yy::parser::token::RETURN); }
 }
 
 \{              { return '{'; }
-\<              { return '<'; }
+\<              {
+  // Left chevron always start a non-text section.
+  yyxmltext = false;
+  return '<';
+}
 
 .               {
   if (yyxmltext) {

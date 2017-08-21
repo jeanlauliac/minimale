@@ -7,7 +7,8 @@ export default component HelloWorld {
   render() {
     return
       <p>
-        Hello, {this.props.name}!
+        Hello, <b>{this.props.name}</b>!
+        <span>Foo.</span>
       </p>;
   }
 

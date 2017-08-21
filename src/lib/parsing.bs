@@ -125,7 +125,7 @@ xml_expression: matched_xml_tag { $$ = $1; };
 matched_xml_tag:
   '<' IDENTIFIER[tag_name] '>' { yyxmltext = true; }
   xml_fragments[frs]
-  '<' { yyxmltext = false; } '/' IDENTIFIER[end_name] '>'
+  '<' '/' IDENTIFIER[end_name] '>'
   {
     const auto& tag_name = $tag_name;
     if (tag_name != $end_name) {
@@ -142,6 +142,21 @@ xml_fragments:
 xml_fragment:
     XML_TEXT_FRAGMENT { $$ = st.create_xml_text_fragment($1); }
   | xml_interpolation { $$ = st.create_xml_interpolation($1); };
+  | '<' IDENTIFIER[tag_name] '>' { yyxmltext = true; }
+    xml_fragments[frs]
+    '<' '/' IDENTIFIER[end_name] '>' {
+      yyxmltext = true;
+      const auto& tag_name = $tag_name;
+      if (tag_name != $end_name) {
+        // Should be made to report line/column, etc.
+        throw std::runtime_error("mismatched tags");
+      }
+      auto tag = st.create_xml_tag(tag_name, std::move($frs));
+      $$ = st.create_xml_interpolation(tag);
+    };
+//  | '<' { yyxmltext = false; }
+//    matched_xml_tag_inside
+//    { yyxmltext = true; };
 
 xml_interpolation:
   '{' { yyxmltext = false; } expression[exp] '}' { yyxmltext = true; }
