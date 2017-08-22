@@ -32,6 +32,7 @@ store read_store(const std::string file_path) {
 
 struct component_structure {
   std::map<std::string, type_annotation_id> state;
+  std::vector<size_t> mutators;
   expression_id render;
 };
 
@@ -67,7 +68,9 @@ component_structure get_structure(const store& st, const component& cp) {
         if (fn.statements.size() > 1) {
           throw std::runtime_error("too many statements");
         }
+        continue;
       }
+      result.mutators.push_back(s_id.value);
       continue;
     }
     throw std::runtime_error("invalid type");
@@ -237,6 +240,32 @@ void write_unmount_function(
     << indent << "this.root = null;" << std::endl;
 }
 
+void write_mutator(
+  const store& st,
+  const component_structure& cs,
+  const std::string& indent,
+  size_t function_id,
+  std::ostream& os
+) {
+  const auto& fn = st.functions[function_id];
+  os
+    << indent << fn.name << "(" << ") {" << std::endl
+    << indent << "  ;" << std::endl
+    << indent << "}" << std::endl;
+}
+
+void write_mutators(
+  const store& st,
+  const component_structure& cs,
+  const std::string& indent,
+  std::ostream& os
+) {
+  for (size_t mutator: cs.mutators) {
+    os << std::endl;
+    write_mutator(st, cs, indent, mutator, os);
+  }
+}
+
 void write_typescript(const store& st, std::ostream& os) {
   os
     << "/* Generated with the `minimale` tool. */" << std::endl
@@ -267,9 +296,9 @@ void write_typescript(const store& st, std::ostream& os) {
         << "  }" << std::endl << std::endl
         << "  unmount(): void {" << std::endl;
       write_unmount_function(st, cs.render, cs, "    ", os);
-      os
-        << "  }" << std::endl
-        << "}" << std::endl;
+      os << "  }" << std::endl;
+      write_mutators(st, cs, "  ", os);
+      os << "}" << std::endl;
     }
   }
 }
