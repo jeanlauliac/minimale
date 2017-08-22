@@ -1,13 +1,13 @@
 
 export default component HelloWorld {
-  props: {
+  state: {
     name: string,
   };
 
   render() {
     return
       <p>
-        Hello, <b>{this.props.name}</b>!
+        Hello, <b>{this.state.name}</b>!
         <br />
         <span>{'Foo'}.</span>
       </p>;
@@ -16,4 +16,5 @@ export default component HelloWorld {
   // rename(name: string) {
   //   this.props.name = name;
   // }
+
 }

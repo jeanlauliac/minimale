@@ -31,7 +31,7 @@ store read_store(const std::string file_path) {
 }
 
 struct component_structure {
-  std::map<std::string, type_annotation_id> props;
+  std::map<std::string, type_annotation_id> state;
   expression_id render;
 };
 
@@ -45,12 +45,12 @@ component_structure get_structure(const store& st, const component& cp) {
   for (const auto& s_id: cp.statements) {
     if (s_id.type == component_statement_type::field) {
       const auto& field = st.fields[s_id.value];
-      if (field.name == "props") {
+      if (field.name == "state") {
         if (field.type_annotation.type != type_annotation_type::object)
-          throw std::runtime_error("`props` must be an object");
+          throw std::runtime_error("`state` must be an object");
         const auto& ot = st.object_type_annotations[field.type_annotation.value];
         for (const auto& otf: ot.fields) {
-          result.props[otf.name] = otf.type_annotation;
+          result.state[otf.name] = otf.type_annotation;
         }
         continue;
       }
@@ -76,14 +76,14 @@ component_structure get_structure(const store& st, const component& cp) {
   return result;
 }
 
-void write_props_type(
-  const std::string& props_type_name,
+void write_state_type(
+  const std::string& state_type_name,
   const store& st,
   const component_structure& cs,
   std::ostream& os
 ) {
-  os << "export type " << props_type_name << " = {" << std::endl;
-  for (const auto& pair: cs.props) {
+  os << "export type " << state_type_name << " = {" << std::endl;
+  for (const auto& pair: cs.state) {
     if (pair.second.type != type_annotation_type::literal) {
       throw std::runtime_error("cannot handle non-literal type annotations");
     }
@@ -142,11 +142,11 @@ void write_text_node_creator(
     << "'));" << std::endl;
 }
 
-bool is_props(const store& st, const expression_id& xp) {
+bool is_state(const store& st, const expression_id& xp) {
   if (xp.type != expression_type::member_access) return false;
   const auto& ma = st.member_accesses[xp.value];
   if (ma.expression.type != expression_type::reference) return false;
-  if (ma.identifier != "props") return false;
+  if (ma.identifier != "state") return false;
   const auto& ref = st.references[ma.expression.value];
   return ref == "this";
 }
@@ -165,16 +165,16 @@ void write_node_creator(
   }
   if (xp.type == expression_type::member_access) {
     const auto& ma = st.member_accesses[xp.value];
-    if (!is_props(st, ma.expression)) {
-      throw std::runtime_error("cannot handle other than `this.props`");
+    if (!is_state(st, ma.expression)) {
+      throw std::runtime_error("cannot handle other than `this.state`");
     }
-    if (cs.props.find(ma.identifier) == cs.props.end()) {
+    if (cs.state.find(ma.identifier) == cs.state.end()) {
       throw std::runtime_error("prop `" + ma.identifier + "` unknown");
     }
     os
       << indent << root_var_name
       << ".appendChild(d.createTextNode("
-      << "initialProps." << ma.identifier
+      << "initialState." << ma.identifier
       << "));" << std::endl;
     return;
   }
@@ -246,8 +246,8 @@ void write_typescript(const store& st, std::ostream& os) {
     if (st_id.type == statement_type::component) {
       const auto& cp = st.components[st_id.value];
       auto cs = get_structure(st, cp);
-      auto props_type_name = cp.name + "Props";
-      write_props_type(props_type_name, st, cs, os);
+      auto state_type_name = cp.name + "State";
+      write_state_type(state_type_name, st, cs, os);
       std::unordered_set<size_t> member_tags = {cs.render.value};
       os
         << "export default class " << cp.name << " {" << std::endl
@@ -259,8 +259,8 @@ void write_typescript(const store& st, std::ostream& os) {
       }
       os
         << std::endl
-        << "  constructor(root: HTMLElement, initialProps: "
-          << props_type_name << ") {" << std::endl
+        << "  constructor(root: HTMLElement, initialState: "
+          << state_type_name << ") {" << std::endl
         << "    this.root = root;" << std::endl
         << "    const d = root.ownerDocument;" << std::endl;
       write_node_creator(st, cs.render, cs, "    ", "root", member_tags, os);
