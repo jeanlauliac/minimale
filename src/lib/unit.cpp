@@ -20,9 +20,10 @@ component_statement_id store::create_component_field(
 
 component_statement_id store::create_component_function(
   const std::string& name,
+  std::vector<minimale::function_argument>&& args,
   std::vector<minimale::function_statement_id>&& sts
 ) {
-  functions.emplace_back(name, std::move(sts));
+  functions.emplace_back(name, std::move(args), std::move(sts));
   return component_statement_id(component_statement_type::function, functions.size() - 1);
 }
 
@@ -41,6 +42,14 @@ type_annotation_id store::create_object_type_annotation(
 function_statement_id store::create_return_statement(const expression_id& xp) {
   return_statements.emplace_back(xp);
   return function_statement_id(function_statement_type::return_, return_statements.size() - 1);
+}
+
+function_statement_id store::create_assignment(
+  const expression_id& into,
+  const expression_id& from
+) {
+  assignments.emplace_back(into, from);
+  return function_statement_id(function_statement_type::assignment, assignments.size() - 1);
 }
 
 expression_id store::create_reference(const std::string& ident) {

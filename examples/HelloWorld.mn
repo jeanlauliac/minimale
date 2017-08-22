@@ -13,8 +13,7 @@ export default component HelloWorld {
       </p>;
   }
 
-  // rename(name: string) {
-  //   this.props.name = name;
-  // }
-
+  rename(name: string) {
+    // this.props.name = name;
+  }
 }

@@ -20,6 +20,9 @@
 %type <std::vector<minimale::component_statement_id>> component_statements
 %type <minimale::component_statement_id> component_statement
 %type <minimale::component_statement_id> component_function
+%type <std::vector<minimale::function_argument>> function_arguments
+%type <std::vector<minimale::function_argument>> function_arguments_list
+%type <minimale::function_argument> function_argument
 %type <minimale::component_statement_id> component_field
 %type <minimale::type_annotation_id> type_annotation
 %type <std::vector<minimale::object_type_annotation_field>> object_field_annotations
@@ -27,6 +30,7 @@
 %type <std::vector<minimale::function_statement_id>> function_statements
 %type <minimale::function_statement_id> function_statement
 %type <minimale::expression_id> expression
+%type <minimale::expression_id> lvalue
 %type <minimale::expression_id> xml_expression
 %type <minimale::expression_id> matched_xml_tag
 %type <std::vector<minimale::xml_fragment_id>> xml_fragments
@@ -73,10 +77,24 @@ component_statement:
   | component_field { $$ = $1; };
 
 component_function:
-  IDENTIFIER[name] '(' ')' '{'
+  IDENTIFIER[name] '(' function_arguments[args] ')' '{'
     function_statements[sts]
   '}'
-  { $$ = st.create_component_function($name, std::move($sts)); };
+  { $$ = st.create_component_function($name, std::move($args), std::move($sts)); };
+
+function_arguments:
+    function_arguments_list { $$ = $1; }
+  | %empty {};
+
+function_arguments_list:
+    function_arguments ',' function_argument
+    { ($$ = std::move($1)).push_back(std::move($3)); }
+  | function_argument
+    { $$.push_back(std::move($1)); };
+
+function_argument:
+  IDENTIFIER[name] ':' type_annotation[type]
+  { $$ = minimale::function_argument($name, $type); };
 
 component_field:
   IDENTIFIER[name] ':' type_annotation[type] ';'
@@ -102,15 +120,20 @@ function_statements:
   | %empty {};
 
 function_statement:
-  RETURN expression ';'
-  { $$ = st.create_return_statement($2); };
+    RETURN expression ';'
+    { $$ = st.create_return_statement($2); }
+  | lvalue '=' expression
+    { $$ = st.create_assignment($1, $3); };
 
 expression:
     '(' expression ')' { $$ = $2; }
-  | IDENTIFIER { $$ = st.create_reference($1); }
-  | expression '.' IDENTIFIER { $$ = st.create_member_access($1, $3); }
+  | lvalue { $$ = $1; }
   | STRING { $$ = st.create_string($1); }
   | xml_expression { $$ = $1; };
+
+lvalue:
+    IDENTIFIER { $$ = st.create_reference($1); }
+  | expression '.' IDENTIFIER { $$ = st.create_member_access($1, $3); };
 
 xml_expression: matched_xml_tag { $$ = $1; };
 

@@ -58,16 +58,15 @@ component_structure get_structure(const store& st, const component& cp) {
     }
     if (s_id.type == component_statement_type::function) {
       const auto& fn = st.functions[s_id.value];
-      if (fn.name != "render") {
-        throw std::runtime_error("invalid function name: " + fn.name);
-      }
-      const auto& st_id = fn.statements[0];
-      if (st_id.type != function_statement_type::return_) {
-        throw std::runtime_error("statement not supported");
-      }
-      result.render = st.return_statements[st_id.value].expression;
-      if (fn.statements.size() > 1) {
-        throw std::runtime_error("too many statements");
+      if (fn.name == "render") {
+        const auto& st_id = fn.statements[0];
+        if (st_id.type != function_statement_type::return_) {
+          throw std::runtime_error("statement not supported");
+        }
+        result.render = st.return_statements[st_id.value].expression;
+        if (fn.statements.size() > 1) {
+          throw std::runtime_error("too many statements");
+        }
       }
       continue;
     }

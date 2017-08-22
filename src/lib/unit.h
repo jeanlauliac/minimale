@@ -22,7 +22,7 @@ typedef id_of<component_statement_type> component_statement_id;
 enum class type_annotation_type { object, literal };
 typedef id_of<type_annotation_type> type_annotation_id;
 
-enum class function_statement_type { return_ };
+enum class function_statement_type { return_, assignment };
 typedef id_of<function_statement_type> function_statement_id;
 
 enum class expression_type { reference, member_access, string, xml_tag };
@@ -49,12 +49,24 @@ struct field {
   type_annotation_id type_annotation;
 };
 
+struct function_argument {
+  function_argument() {}
+  function_argument(
+    const std::string& name,
+    const type_annotation_id& type_annotation
+  ): name(name), type_annotation(type_annotation) {}
+  std::string name;
+  type_annotation_id type_annotation;
+};
+
 struct function {
   function(
     const std::string& name,
+    std::vector<minimale::function_argument>&& args,
     std::vector<minimale::function_statement_id>&& sts
-  ): name(name), statements(std::move(sts)) {}
+  ): name(name), arguments(std::move(args)), statements(std::move(sts)) {}
   std::string name;
+  std::vector<minimale::function_argument> arguments;
   std::vector<minimale::function_statement_id> statements;
 };
 
@@ -88,6 +100,15 @@ struct return_statement {
   expression_id expression;
 };
 
+struct assignment {
+  assignment(
+    const expression_id& into,
+    const expression_id& from
+  ): into(into), from(from) {}
+  expression_id into;
+  expression_id from;
+};
+
 struct member_access {
   member_access(const expression_id& xp, const std::string ident):
     expression(xp), identifier(ident) {}
@@ -112,6 +133,7 @@ struct store {
   std::vector<literal_type_annotation> literal_type_annotations;
   std::vector<object_type_annotation> object_type_annotations;
   std::vector<return_statement> return_statements;
+  std::vector<assignment> assignments;
   std::vector<std::string> references;
   std::vector<member_access> member_accesses;
   std::vector<xml_tag> xml_tags;
@@ -129,6 +151,7 @@ struct store {
   );
   component_statement_id create_component_function(
     const std::string& name,
+    std::vector<minimale::function_argument>&& args,
     std::vector<minimale::function_statement_id>&& sts
   );
   type_annotation_id create_literal_type_annotation(const std::string& ident);
@@ -136,6 +159,10 @@ struct store {
     std::vector<object_type_annotation_field>&& fields
   );
   function_statement_id create_return_statement(const expression_id& xp);
+  function_statement_id create_assignment(
+    const expression_id& into,
+    const expression_id& from
+  );
   expression_id create_reference(const std::string& ident);
   expression_id
   create_member_access(const expression_id& xp, const std::string ident);
