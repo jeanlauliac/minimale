@@ -6,6 +6,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 extern FILE* yyin;
 
@@ -156,6 +157,7 @@ void write_node_creator(
   const component_structure& cs,
   const std::string& indent,
   const std::string& root_var_name,
+  const std::unordered_set<size_t> member_tags,
   std::ostream& os
 ) {
   if (xp.type == expression_type::reference) {
@@ -185,10 +187,14 @@ void write_node_creator(
       << "'));" << std::endl;
     return;
   }
-  const auto var_name = "e" + std::to_string(xp.value);
+  const auto is_member = member_tags.count(xp.value) > 0;
+  const auto var_name =
+    std::string(is_member ? "this." : "") + "e" + std::to_string(xp.value);
   const auto& tag = st.xml_tags[xp.value];
+  os << indent;
+  if (!is_member) os << "const ";
   os
-    << indent << "const " << var_name << " = d.createElement('"
+    << var_name << " = d.createElement('"
       << tag.tag_name << "');" << std::endl
     << indent << root_var_name << ".appendChild(" << var_name << ");"
       << std::endl;
@@ -208,12 +214,28 @@ void write_node_creator(
       throw std::runtime_error("invalid fragment");
     }
     const auto& ixp = st.xml_interpolations[frg.value];
-    write_node_creator(st, ixp, cs, indent, var_name, os);
+    write_node_creator(st, ixp, cs, indent, var_name, member_tags, os);
     keep_front_ws = true;
   }
   if (!text_acc.str().empty()) {
     write_text_node_creator(var_name, indent, text_acc.str(), keep_front_ws, false, os);
   }
+}
+
+void write_unmount_function(
+  const store& st,
+  const expression_id& xp,
+  const component_structure& cs,
+  const std::string& indent,
+  std::ostream& os
+) {
+  auto id = std::to_string(xp.value);
+  os
+    << indent << "if (this.root == null) return;" << std::endl
+    << indent << "this.root.removeChild(this.e" << id
+    << ");" << std::endl
+    << indent << "this.e" << id << " = null;" << std::endl
+    << indent << "this.root = null;" << std::endl;
 }
 
 void write_typescript(const store& st, std::ostream& os) {
@@ -226,17 +248,27 @@ void write_typescript(const store& st, std::ostream& os) {
       auto cs = get_structure(st, cp);
       auto props_type_name = cp.name + "Props";
       write_props_type(props_type_name, st, cs, os);
+      std::unordered_set<size_t> member_tags = {cs.render.value};
       os
         << "export default class " << cp.name << " {" << std::endl
-        << "  private root: HTMLElement;" << std::endl << std::endl
+        << "  private root: HTMLElement;" << std::endl;
+      for (auto mt: member_tags) {
+        os
+          << "  private e" << std::to_string(mt)
+          << ": HTMLElement;" << std::endl;
+      }
+      os
+        << std::endl
         << "  constructor(root: HTMLElement, initialProps: "
           << props_type_name << ") {" << std::endl
         << "    this.root = root;" << std::endl
         << "    const d = root.ownerDocument;" << std::endl;
-      write_node_creator(st, cs.render, cs, "    ", "root", os);
+      write_node_creator(st, cs.render, cs, "    ", "root", member_tags, os);
       os
         << "  }" << std::endl << std::endl
-        << "  unmount(): void {" << std::endl
+        << "  unmount(): void {" << std::endl;
+      write_unmount_function(st, cs.render, cs, "    ", os);
+      os
         << "  }" << std::endl
         << "}" << std::endl;
     }

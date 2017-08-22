@@ -10,7 +10,8 @@
     <script src="HelloWorld.js"></script>
     <script>
       const rr = document.getElementById('root');
-      new (exports["default"])(rr, {name: 'Jean'});
+      window.comp = new (exports["default"])(rr, {name: 'Jean'});
     </script>
+    <button onclick="javascript:comp.unmount()">Unmount</button>
   </body>
 </html>
