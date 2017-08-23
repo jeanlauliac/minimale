@@ -1,0 +1,18 @@
+{
+  "namespace": ["minimale", "lang"],
+  "node_types": {
+    "unit": {
+      "fields": {},
+      "edges": {
+        "statements": "unit_statement"
+      }
+    },
+    "component": {
+      "name": "component",
+      "fields": {"name": "string"}
+    }
+  },
+  "edge_types": {
+    "unit_statement": ["component"]
+  }
+}
