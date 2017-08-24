@@ -29,6 +29,18 @@
       ]
     },
     {
+      "binary_path": "tools/gen_variants.js",
+      "arguments": [
+        {
+          "literals": [],
+          "variables": [
+            "output_file",
+            "input_files"
+          ]
+        }
+      ]
+    },
+    {
       "binary_path": "clang++",
       "arguments": [
         {
@@ -174,6 +186,7 @@
   "source_patterns": [
     "(src/**/*.lx)",
     "(src/**/*.bs)",
+    "(src/lib/lang_variants.json)",
     "(src/**/*).cpp",
     "examples/(*).mn",
     "examples/(*.html)"
@@ -200,15 +213,28 @@
       "output": ".build_files/($1).cpp"
     },
     {
-      "dependencies": [
-        {
-          "rule_ix": 1
-        }
-      ],
+      "dependencies": [],
       "command_line_ix": 2,
       "inputs": [
         {
           "source_ix": 2
+        }
+      ],
+      "output": ".build_files/($1).h"
+    },
+    {
+      "dependencies": [
+        {
+          "rule_ix": 1
+        },
+        {
+          "rule_ix": 2
+        }
+      ],
+      "command_line_ix": 3,
+      "inputs": [
+        {
+          "source_ix": 3
         }
       ],
       "output": ".build_files/($1).o"
@@ -219,7 +245,7 @@
           "rule_ix": 1
         }
       ],
-      "command_line_ix": 3,
+      "command_line_ix": 4,
       "inputs": [
         {
           "rule_ix": 0
@@ -229,7 +255,7 @@
     },
     {
       "dependencies": [],
-      "command_line_ix": 3,
+      "command_line_ix": 4,
       "inputs": [
         {
           "rule_ix": 1
@@ -239,16 +265,16 @@
     },
     {
       "dependencies": [],
-      "command_line_ix": 4,
+      "command_line_ix": 5,
       "inputs": [
-        {
-          "rule_ix": 2
-        },
         {
           "rule_ix": 3
         },
         {
           "rule_ix": 4
+        },
+        {
+          "rule_ix": 5
         }
       ],
       "output": "dist/minimale"
@@ -256,33 +282,33 @@
     {
       "dependencies": [
         {
-          "rule_ix": 5
+          "rule_ix": 6
         }
       ],
-      "command_line_ix": 5,
+      "command_line_ix": 6,
       "inputs": [
         {
-          "source_ix": 3
+          "source_ix": 4
         }
       ],
       "output": ".build_files/example/($1).ts"
     },
     {
       "dependencies": [],
-      "command_line_ix": 6,
+      "command_line_ix": 7,
       "inputs": [
         {
-          "rule_ix": 6
+          "rule_ix": 7
         }
       ],
       "output": "dist/example/$1.js"
     },
     {
       "dependencies": [],
-      "command_line_ix": 7,
+      "command_line_ix": 8,
       "inputs": [
         {
-          "source_ix": 4
+          "source_ix": 5
         }
       ],
       "output": "dist/example/$1"

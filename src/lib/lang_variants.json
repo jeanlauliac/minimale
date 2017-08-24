@@ -1,0 +1,10 @@
+{
+  "namespace": ["minimale", "lang"],
+  "include": ["lang.h"],
+  "variant_types": {
+    "expr": [
+      "ltr_string",
+      "ltr_int"
+    ]
+  }
+}

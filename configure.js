@@ -38,6 +38,14 @@ const compiled_bison_files = manifest.rule(getBisonCli(), [
   manifest.source("(src/**/*.bs)"),
 ], `${BUILD_DIR}/($1).cpp`);
 
+const variant_cli = manifest.cli_template('tools/gen_variants.js', [
+  {literals: [], variables: ["output_file", "input_files"]},
+]);
+
+const compiled_variant_files = manifest.rule(variant_cli, [
+  manifest.source("(src/lib/lang_variants.json)"),
+], `${BUILD_DIR}/($1).h`);
+
 const compile_cpp_cli = manifest.cli_template('clang++', [
   {literals: ["-c", "-o"], variables: ["output_file"]},
   {
@@ -52,7 +60,7 @@ const compile_cpp_cli = manifest.cli_template('clang++', [
 
 const compiled_cpp_files = manifest.rule(compile_cpp_cli, [
   manifest.source("(src/**/*).cpp"),
-], `${BUILD_DIR}/($1).o`, [compiled_bison_files]);
+], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_files]);
 
 const compile_flex_cpp_cli = manifest.cli_template('clang++', [
   {literals: ["-c", "-o"], variables: ["output_file"]},
