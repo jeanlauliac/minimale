@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 using namespace std;
-#define YY_DECL int yylex(yy::parser::semantic_type* yylval, minimale::store& st)
+#define YY_DECL int yylex(yy::parser::semantic_type* yylval, minimale::lang::unit& unit)
 static int keyword(yy::parser::semantic_type* yylval, int token);
 static std::string convert_string(const char* src);
 bool yyxmltext = false;

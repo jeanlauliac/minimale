@@ -1,4 +1,5 @@
 #include "../.build_files/src/lib/parsing.bs.hpp"
+#include "../.build_files/src/lib/lang_variants.json.h"
 #include "lib/unit.h"
 #include <iostream>
 #include <fstream>
@@ -21,8 +22,8 @@ store read_store(const std::string file_path) {
   }
   yyin = file.get();
 
-  store st;
-  yy::parser pr(st);
+  lang_unit unit;
+  yy::parser pr(unit);
   //pr.set_debug_level(true);
   if (pr.parse() != 0) {
     throw std::runtime_error("parse failed");

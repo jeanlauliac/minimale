@@ -5,11 +5,15 @@ const fs = require('fs');
 const path = require('path');
 
 function main() {
-  const outPath = process.argv[2];
+  const depPath = process.argv[2];
+  const outPath = process.argv[3];
   const outDirname = path.dirname(outPath);
-  const inPath = process.argv[3];
+  const inPath = process.argv[4];
   const inDirname = path.dirname(inPath);
-  const input = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+  const deps = fs.createWriteStream(depPath);
+  deps.write(`${outPath}: ${inPath} ${path.relative(process.cwd(), __filename)}\n`);
+  deps.end();
+  const input = JSON.parse(fs.readFileSync(inPath, 'utf8'));
   const st = fs.createWriteStream(outPath);
   st.write('#pragma once\n\n');
   for (const name of input.include) {
@@ -23,6 +27,12 @@ function main() {
   st.write(`\n`);
   for (const [name, types] of Object.entries(input.variant_types)) {
     st.write(`struct ${name} {\n`);
+    st.write(`  ${name} (): p_(nullptr, nullptr), t_(-1) {}\n`);
+    st.write(`  ${name} (const ${name}&) = delete;\n`);
+    st.write(`  ${name} (${name}&& x): p_(std::move(x.p_)), t_(x.t_) {}\n`);
+    st.write(`  ${name}& operator=(const ${name}& x) = delete;\n`);
+    st.write(`  ${name}& operator=(${name}&& x) { p_ = std::move(x.p_); t_ = x.t_; return *this; };\n`);
+    st.write(`\n`);
     for (const [i, typename] of types.entries()) {
       st.write(`  ${name}(${typename}&& value):\n`)
       st.write(`    p_(reinterpret_cast<void*>(new ${typename}(value)), &delete_${typename}_), t_(${i}) {}\n`);
@@ -42,6 +52,7 @@ function main() {
   for (const name of input.namespace) {
     st.write('}\n');
   }
+  st.end();
 }
 
 main();

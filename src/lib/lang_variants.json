@@ -5,6 +5,13 @@
     "expr": [
       "ltr_string",
       "ltr_int"
+    ],
+    "comp_stmt": [
+      "comp_field",
+      "comp_func"
+    ],
+    "unit_stmt": [
+      "comp"
     ]
   }
 }

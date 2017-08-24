@@ -39,7 +39,7 @@ const compiled_bison_files = manifest.rule(getBisonCli(), [
 ], `${BUILD_DIR}/($1).cpp`);
 
 const variant_cli = manifest.cli_template('tools/gen_variants.js', [
-  {literals: [], variables: ["output_file", "input_files"]},
+  {literals: [], variables: ["dependency_file", "output_file", "input_files"]},
 ]);
 
 const compiled_variant_files = manifest.rule(variant_cli, [
@@ -78,11 +78,11 @@ const compile_flex_cpp_cli = manifest.cli_template('clang++', [
 
 const compiled_flex_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_flex_files,
-], `${BUILD_DIR}/($1).o`, [compiled_bison_files]);
+], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_files]);
 
 const compiled_bison_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_bison_files,
-], `${BUILD_DIR}/($1).o`);
+], `${BUILD_DIR}/($1).o`, [compiled_variant_files]);
 
 const minimale_binary = manifest.rule(
   manifest.cli_template('clang++', [

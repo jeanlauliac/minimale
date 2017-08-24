@@ -34,6 +34,7 @@
         {
           "literals": [],
           "variables": [
+            "dependency_file",
             "output_file",
             "input_files"
           ]
@@ -243,6 +244,9 @@
       "dependencies": [
         {
           "rule_ix": 1
+        },
+        {
+          "rule_ix": 2
         }
       ],
       "command_line_ix": 4,
@@ -254,7 +258,11 @@
       "output": ".build_files/($1).o"
     },
     {
-      "dependencies": [],
+      "dependencies": [
+        {
+          "rule_ix": 2
+        }
+      ],
       "command_line_ix": 4,
       "inputs": [
         {

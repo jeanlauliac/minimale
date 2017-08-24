@@ -15,11 +15,11 @@
 %token <std::string> XML_TEXT_FRAGMENT
 %token <std::string> STRING
 
-%type <std::vector<minimale::statement_id>> statements
-%type <minimale::statement_id> statement
-%type <std::vector<minimale::component_statement_id>> component_statements
-%type <minimale::component_statement_id> component_statement
-%type <minimale::component_statement_id> component_function
+%type <std::vector<minimale::lang::unit_stmt>> statements
+%type <minimale::lang::unit_stmt> statement
+%type <std::vector<minimale::lang::comp_stmt>> component_statements
+%type <minimale::lang::comp_stmt> component_statement
+%type <minimale::lang::comp_func> component_function
 %type <std::vector<minimale::function_argument>> function_arguments
 %type <std::vector<minimale::function_argument>> function_arguments_list
 %type <minimale::function_argument> function_argument
@@ -37,11 +37,12 @@
 %type <minimale::xml_fragment_id> xml_fragment
 %type <minimale::expression_id> xml_interpolation
 
-%param { minimale::store& st }
+%param { minimale::lang::unit& unit }
 %start unit
 
 %code requires {
   #include "../../../src/lib/unit.h"
+  #include "lang_variants.json.h"
   #include <vector>
 }
 
@@ -49,13 +50,14 @@
   #include <cstdio>
   #include <iostream>
 
-  int yylex(yy::parser::semantic_type* yylval, minimale::store& st);
+  int yylex(yy::parser::semantic_type* yylval, minimale::lang::unit& unit);
   extern bool yyxmltext;
   void yyerror(const char *s);
+  using namespace minimale::lang;
 }
 
 %%
-unit: statements { st.unit.statements = std::move($1); };
+unit: statements { unit.stmts = std::move($1); };
 
 statements:
     statements statement { ($$ = std::move($1)).push_back($2); }
@@ -63,9 +65,9 @@ statements:
 
 statement:
   EXPORT DEFAULT COMPONENT IDENTIFIER[name] '{'
-    component_statements[statements]
+    component_statements[stmts]
   '}'
-  { $$ = st.create_component($name, std::move($statements)); };
+  { $$ = comp({ $name, std::move($stmts) }); };
 
 component_statements:
     component_statements component_statement
@@ -73,17 +75,17 @@ component_statements:
   | %empty {};
 
 component_statement:
-    component_function { $$ = $1; }
-  | component_field { $$ = $1; };
+    component_function { $$ = std::move($1); }
+  | component_field { $$ = std::move($1); };
 
 component_function:
   IDENTIFIER[name] '(' function_arguments[args] ')' '{'
     function_statements[sts]
   '}'
-  { $$ = st.create_component_function($name, std::move($args), std::move($sts)); };
+  { $$ = comp_func({ $name, std::move($args), std::move($sts) }); };
 
 function_arguments:
-    function_arguments_list { $$ = $1; }
+    function_arguments_list { $$ = std::move($1); }
   | %empty {};
 
 function_arguments_list:
@@ -94,11 +96,11 @@ function_arguments_list:
 
 function_argument:
   IDENTIFIER[name] ':' type_annotation[type]
-  { $$ = minimale::function_argument($name, $type); };
+  { $$ = func_arg { $name, $type }; };
 
 component_field:
   IDENTIFIER[name] ':' type_annotation[type] ';'
-  { $$ = st.create_component_field($name, $type); };
+  { $$ = comp_field { $name, $type }; };
 
 type_annotation:
     IDENTIFIER { $$ = st.create_literal_type_annotation($1); }
@@ -126,16 +128,16 @@ function_statement:
     { $$ = st.create_assignment($1, $3); };
 
 expression:
-    '(' expression ')' { $$ = $2; }
-  | lvalue { $$ = $1; }
-  | STRING { $$ = st.create_string($1); }
-  | xml_expression { $$ = $1; };
+    '(' expression ')' { $$ = std::move($2); }
+  | lvalue { $$ = std::move($1); }
+  | STRING { $$ = ltr_string { std::move($1) }; }
+  | xml_expression { $$ = std::move($1); };
 
 lvalue:
     IDENTIFIER { $$ = st.create_reference($1); }
   | expression '.' IDENTIFIER { $$ = st.create_member_access($1, $3); };
 
-xml_expression: matched_xml_tag { $$ = $1; };
+xml_expression: matched_xml_tag { $$ = std::move($1); };
 
 /**
  * Inside an XML tag, we need to affect how the lexing is done, because
@@ -157,7 +159,7 @@ matched_xml_tag:
       // Should be made to report line/column, etc.
       throw std::runtime_error("mismatched tags");
     }
-    $$ = st.create_xml_tag(tag_name, std::move($frs));
+    $$ = xml_tag { std::move(tag_name), std::move($frs) };
   };
 
 xml_fragments:
@@ -165,8 +167,8 @@ xml_fragments:
   | %empty {};
 
 xml_fragment:
-    XML_TEXT_FRAGMENT { $$ = st.create_xml_text_fragment($1); }
-  | xml_interpolation { $$ = st.create_xml_interpolation($1); };
+    XML_TEXT_FRAGMENT { $$ = xml_text { std::move($1) }; }
+  | xml_interpolation { $$ = xml_interp { std::move($1) }; };
   | '<' IDENTIFIER[tag_name] '>' { yyxmltext = true; }
     xml_fragments[frs]
     '<' '/' IDENTIFIER[end_name] '>' {
@@ -176,22 +178,17 @@ xml_fragment:
         // Should be made to report line/column, etc.
         throw std::runtime_error("mismatched tags");
       }
-      auto tag = st.create_xml_tag(tag_name, std::move($frs));
-      $$ = st.create_xml_interpolation(tag);
+      $$ = xml_interp { xml_tag { tag_name, std::move($frs) } };
     }
   | '<' IDENTIFIER[tag_name] '/' '>' {
       yyxmltext = true;
       const auto& tag_name = $tag_name;
-      auto tag = st.create_xml_tag(tag_name, {});
-      $$ = st.create_xml_interpolation(tag);
+      $$ = xml_interp { xml_tag { tag_name, {} } };
     };
-//  | '<' { yyxmltext = false; }
-//    matched_xml_tag_inside
-//    { yyxmltext = true; };
 
 xml_interpolation:
   '{' { yyxmltext = false; } expression[exp] '}' { yyxmltext = true; }
-  { $$ = $exp; };
+  { $$ = std::move($exp); };
 
 %%
 
