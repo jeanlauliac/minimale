@@ -103,7 +103,7 @@ component_field:
   { $$ = comp_field { $name, std::move($type) }; };
 
 type_annotation:
-    IDENTIFIER { $$ = st.create_literal_type_annotation($1); }
+    IDENTIFIER { $$ = ltr_type_annot { $1 }; }
   | '{' object_field_annotations[fields] '}'
     { $$ = obj_type_annot { std::move($fields) }; };
 

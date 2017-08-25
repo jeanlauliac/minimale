@@ -48,11 +48,15 @@ struct obj_type_annot {
   std::vector<obj_type_field> fields;
 };
 
+struct ltr_type_annot {
+  std::string ident;
+};
+
 struct return_stmt {
   expr expr;
 };
 
-struct assigment {
+struct assignment {
   expr assigned;
   expr value;
 };

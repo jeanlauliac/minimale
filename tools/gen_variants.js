@@ -44,9 +44,9 @@ function main() {
     const funcPrefix = isCpp ? `${name}::` : '';
     const indent = isCpp ? '' : '  ';
     st.write(`${indent}${funcPrefix}${name}()${isCpp ? ': p_(nullptr, nullptr), t_(-1) {}' : ';'}\n`);
-    if (!isCpp) st.write(`${indent}${name}(const ${name}&) = delete;\n`);
+    if (!isCpp) st.write(`${indent}${name}(const ${name}&);\n`);
     st.write(`${indent}${funcPrefix}${name}(${name}&& x)${isCpp ? ': p_(std::move(x.p_)), t_(x.t_) {}' : ';'}\n`);
-    if (!isCpp) st.write(`${indent}${name}& ${funcPrefix}operator=(const ${name}& x) = delete;\n`);
+    if (!isCpp) st.write(`${indent}${name}& ${funcPrefix}operator=(const ${name}& x);\n`);
     st.write(`${indent}${name}& ${funcPrefix}operator=(${name}&& x)${isCpp ? ' { p_ = std::move(x.p_); t_ = x.t_; return *this; }' : ';'}\n`);
     st.write(`\n`);
     for (const [i, typename] of types.entries()) {

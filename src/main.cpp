@@ -15,20 +15,20 @@ namespace minimale {
 
 typedef std::unique_ptr<FILE, decltype(&fclose)> unique_file;
 
-store read_store(const std::string file_path) {
+lang::unit read_store(const std::string file_path) {
   unique_file file(fopen(file_path.c_str(), "r"), fclose);
   if (!file) {
     throw std::runtime_error("cannot open file: " + file_path);
   }
   yyin = file.get();
 
-  lang_unit unit;
+  lang::unit unit;
   yy::parser pr(unit);
   //pr.set_debug_level(true);
   if (pr.parse() != 0) {
     throw std::runtime_error("parse failed");
   }
-  return st;
+  return unit;
 }
 
 struct component_structure {
