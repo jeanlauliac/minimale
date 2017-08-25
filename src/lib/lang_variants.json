@@ -12,6 +12,17 @@
     ],
     "unit_stmt": [
       "comp"
+    ],
+    "type_annot": [
+      "obj_type_annot"
+    ],
+    "xml_frag": [
+      "xml_text",
+      "xml_interp"
+    ],
+    "func_stmt": [
+      "return_stmt",
+      "assigment"
     ]
   }
 }

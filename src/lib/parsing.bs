@@ -20,29 +20,29 @@
 %type <std::vector<minimale::lang::comp_stmt>> component_statements
 %type <minimale::lang::comp_stmt> component_statement
 %type <minimale::lang::comp_func> component_function
-%type <std::vector<minimale::function_argument>> function_arguments
-%type <std::vector<minimale::function_argument>> function_arguments_list
-%type <minimale::function_argument> function_argument
-%type <minimale::component_statement_id> component_field
-%type <minimale::type_annotation_id> type_annotation
-%type <std::vector<minimale::object_type_annotation_field>> object_field_annotations
-%type <minimale::object_type_annotation_field> object_field_annotation
-%type <std::vector<minimale::function_statement_id>> function_statements
-%type <minimale::function_statement_id> function_statement
-%type <minimale::expression_id> expression
-%type <minimale::expression_id> lvalue
-%type <minimale::expression_id> xml_expression
-%type <minimale::expression_id> matched_xml_tag
-%type <std::vector<minimale::xml_fragment_id>> xml_fragments
-%type <minimale::xml_fragment_id> xml_fragment
-%type <minimale::expression_id> xml_interpolation
+%type <std::vector<minimale::lang::func_arg>> function_arguments
+%type <std::vector<minimale::lang::func_arg>> function_arguments_list
+%type <minimale::lang::func_arg> function_argument
+%type <minimale::lang::comp_stmt> component_field
+%type <minimale::lang::type_annot> type_annotation
+%type <std::vector<minimale::lang::obj_type_field>> object_field_annotations
+%type <minimale::lang::obj_type_field> object_field_annotation
+%type <std::vector<minimale::lang::func_stmt>> function_statements
+%type <minimale::lang::func_stmt> function_statement
+%type <minimale::lang::expr> expression
+%type <minimale::lang::expr> lvalue
+%type <minimale::lang::expr> xml_expression
+%type <minimale::lang::expr> matched_xml_tag
+%type <std::vector<minimale::lang::xml_frag>> xml_fragments
+%type <minimale::lang::xml_frag> xml_fragment
+%type <minimale::lang::expr> xml_interpolation
 
 %param { minimale::lang::unit& unit }
 %start unit
 
 %code requires {
   #include "../../../src/lib/unit.h"
-  #include "lang_variants.json.h"
+  #include "../../../src/lib/lang.h"
   #include <vector>
 }
 
@@ -82,7 +82,7 @@ component_function:
   IDENTIFIER[name] '(' function_arguments[args] ')' '{'
     function_statements[sts]
   '}'
-  { $$ = comp_func({ $name, std::move($args), std::move($sts) }); };
+  { $$ = comp_func { $name, std::move($args), std::move($sts) }; };
 
 function_arguments:
     function_arguments_list { $$ = std::move($1); }
@@ -96,16 +96,16 @@ function_arguments_list:
 
 function_argument:
   IDENTIFIER[name] ':' type_annotation[type]
-  { $$ = func_arg { $name, $type }; };
+  { $$ = func_arg { $name, std::move($type) }; };
 
 component_field:
   IDENTIFIER[name] ':' type_annotation[type] ';'
-  { $$ = comp_field { $name, $type }; };
+  { $$ = comp_field { $name, std::move($type) }; };
 
 type_annotation:
     IDENTIFIER { $$ = st.create_literal_type_annotation($1); }
   | '{' object_field_annotations[fields] '}'
-    { $$ = st.create_object_type_annotation(std::move($fields)); };
+    { $$ = obj_type_annot { std::move($fields) }; };
 
 object_field_annotations:
     object_field_annotations object_field_annotation
@@ -114,7 +114,7 @@ object_field_annotations:
 
 object_field_annotation:
   IDENTIFIER[name] ':' type_annotation[type] ','
-  { $$ = minimale::object_type_annotation_field($name, $type); };
+  { $$ = obj_type_field { $name, std::move($type) }; };
 
 function_statements:
     function_statements function_statement
@@ -123,9 +123,9 @@ function_statements:
 
 function_statement:
     RETURN expression ';'
-    { $$ = st.create_return_statement($2); }
+    { $$ = return_stmt { std::move($2) }; }
   | lvalue '=' expression ';'
-    { $$ = st.create_assignment($1, $3); };
+    { $$ = assignment { std::move($1), std::move($3) }; };
 
 expression:
     '(' expression ')' { $$ = std::move($2); }
@@ -134,8 +134,8 @@ expression:
   | xml_expression { $$ = std::move($1); };
 
 lvalue:
-    IDENTIFIER { $$ = st.create_reference($1); }
-  | expression '.' IDENTIFIER { $$ = st.create_member_access($1, $3); };
+    IDENTIFIER { $$ = ref { $1 }; }
+  | expression '.' IDENTIFIER { $$ = member_access { std::move($1), $3 }; };
 
 xml_expression: matched_xml_tag { $$ = std::move($1); };
 
