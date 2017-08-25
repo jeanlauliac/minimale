@@ -23,6 +23,9 @@ function main() {
       st.write(`#include "${path.relative(outDirname, incPath)}"\n`);
     }
     st.write('\n');
+  } else {
+    st.write(`#include <memory>\n`);
+    st.write('\n');
   }
   for (const name of input.namespace) {
     st.write(`namespace ${name} {\n`);
@@ -51,7 +54,7 @@ function main() {
     st.write(`\n`);
     for (const [i, typename] of types.entries()) {
       st.write(`${indent}${funcPrefix}${name}(${typename}&& value)${isCpp ? ':' : ';'}\n`)
-      if (isCpp) st.write(`    p_(reinterpret_cast<void*>(new ${typename}(value)), &delete_${typename}_), t_(${i}) {}\n`);
+      if (isCpp) st.write(`    p_(reinterpret_cast<void*>(new ${typename}(value)), &${name}::delete_${typename}_), t_(${i}) {}\n`);
       if (!isCpp) {
         st.write(`${indent}bool is_${typename}() const { return t_ == ${i}; }\n`);
         st.write(`${indent}const ${typename}& as_${typename}() const { return *reinterpret_cast<${typename}*>(p_.get()); }\n`);
@@ -60,7 +63,7 @@ function main() {
     }
     if (!isCpp) st.write(`private:\n`);
     for (const [i, typename] of types.entries()) {
-      st.write(`${indent}${isCpp ? 'static ' : ''}void ${funcPrefix}delete_${typename}_(void* p)${isCpp ? ` { delete reinterpret_cast<${typename}*>(p); }` : ';'}\n`);
+      st.write(`${indent}${isCpp ? '' : 'static '}void ${funcPrefix}delete_${typename}_(void* p)${isCpp ? ` { delete reinterpret_cast<${typename}*>(p); }` : ';'}\n`);
     }
     st.write(`\n`);
     if (!isCpp) {

@@ -42,9 +42,13 @@ const variant_cli = manifest.cli_template('tools/gen_variants.js', [
   {literals: [], variables: ["dependency_file", "output_file", "input_files"]},
 ]);
 
-const compiled_variant_files = manifest.rule(variant_cli, [
+const compiled_variant_h_files = manifest.rule(variant_cli, [
   manifest.source("(src/lib/lang_variants.json)"),
 ], `${BUILD_DIR}/($1).h`);
+
+const compiled_variant_cpp_files = manifest.rule(variant_cli, [
+  manifest.source("(src/lib/lang_variants.json)"),
+], `${BUILD_DIR}/($1).cpp`);
 
 const compile_cpp_cli = manifest.cli_template('clang++', [
   {literals: ["-c", "-o"], variables: ["output_file"]},
@@ -60,7 +64,8 @@ const compile_cpp_cli = manifest.cli_template('clang++', [
 
 const compiled_cpp_files = manifest.rule(compile_cpp_cli, [
   manifest.source("(src/**/*).cpp"),
-], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_files]);
+  compiled_variant_cpp_files,
+], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_h_files]);
 
 const compile_flex_cpp_cli = manifest.cli_template('clang++', [
   {literals: ["-c", "-o"], variables: ["output_file"]},
@@ -78,11 +83,11 @@ const compile_flex_cpp_cli = manifest.cli_template('clang++', [
 
 const compiled_flex_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_flex_files,
-], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_files]);
+], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_h_files]);
 
 const compiled_bison_cpp_files = manifest.rule(compile_flex_cpp_cli, [
   compiled_bison_files,
-], `${BUILD_DIR}/($1).o`, [compiled_variant_files]);
+], `${BUILD_DIR}/($1).o`, [compiled_variant_h_files]);
 
 const minimale_binary = manifest.rule(
   manifest.cli_template('clang++', [

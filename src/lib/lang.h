@@ -2,6 +2,7 @@
 
 #include "../../.build_files/src/lib/lang_variants.json.h"
 #include <vector>
+#include <string>
 
 namespace minimale {
 namespace lang {

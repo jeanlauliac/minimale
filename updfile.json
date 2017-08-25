@@ -188,6 +188,7 @@
     "(src/**/*.lx)",
     "(src/**/*.bs)",
     "(src/lib/lang_variants.json)",
+    "(src/lib/lang_variants.json)",
     "(src/**/*).cpp",
     "examples/(*).mn",
     "examples/(*.html)"
@@ -224,6 +225,16 @@
       "output": ".build_files/($1).h"
     },
     {
+      "dependencies": [],
+      "command_line_ix": 2,
+      "inputs": [
+        {
+          "source_ix": 3
+        }
+      ],
+      "output": ".build_files/($1).cpp"
+    },
+    {
       "dependencies": [
         {
           "rule_ix": 1
@@ -235,7 +246,10 @@
       "command_line_ix": 3,
       "inputs": [
         {
-          "source_ix": 3
+          "source_ix": 4
+        },
+        {
+          "rule_ix": 3
         }
       ],
       "output": ".build_files/($1).o"
@@ -276,13 +290,13 @@
       "command_line_ix": 5,
       "inputs": [
         {
-          "rule_ix": 3
-        },
-        {
           "rule_ix": 4
         },
         {
           "rule_ix": 5
+        },
+        {
+          "rule_ix": 6
         }
       ],
       "output": "dist/minimale"
@@ -290,13 +304,13 @@
     {
       "dependencies": [
         {
-          "rule_ix": 6
+          "rule_ix": 7
         }
       ],
       "command_line_ix": 6,
       "inputs": [
         {
-          "source_ix": 4
+          "source_ix": 5
         }
       ],
       "output": ".build_files/example/($1).ts"
@@ -306,7 +320,7 @@
       "command_line_ix": 7,
       "inputs": [
         {
-          "rule_ix": 7
+          "rule_ix": 8
         }
       ],
       "output": "dist/example/$1.js"
@@ -316,7 +330,7 @@
       "command_line_ix": 8,
       "inputs": [
         {
-          "source_ix": 5
+          "source_ix": 6
         }
       ],
       "output": "dist/example/$1"
