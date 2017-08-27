@@ -46,11 +46,11 @@ function main() {
     if (!isCpp) st.write(`struct ${name} {\n`);
     const funcPrefix = isCpp ? `${name}::` : '';
     const indent = isCpp ? '' : '  ';
-    st.write(`${indent}${funcPrefix}${name}()${isCpp ? ': p_(nullptr, nullptr), t_(-1) {}' : ';'}\n`);
-    if (!isCpp) st.write(`${indent}${name}(const ${name}&);\n`);
-    st.write(`${indent}${funcPrefix}${name}(${name}&& x)${isCpp ? ': p_(std::move(x.p_)), t_(x.t_) {}' : ';'}\n`);
-    if (!isCpp) st.write(`${indent}${name}& ${funcPrefix}operator=(const ${name}& x);\n`);
-    st.write(`${indent}${name}& ${funcPrefix}operator=(${name}&& x)${isCpp ? ' { p_ = std::move(x.p_); t_ = x.t_; return *this; }' : ';'}\n`);
+    st.write(`${indent}${funcPrefix}${name}()${isCpp ? ': p_(nullptr), t_(-1) {}' : ';'}\n`);
+    //if (!isCpp) st.write(`${indent}${name}(const ${name}&);\n`);
+    //st.write(`${indent}${funcPrefix}${name}(${name}&& x)${isCpp ? ': p_(std::move(x.p_)), t_(x.t_) {}' : ';'}\n`);
+    //if (!isCpp) st.write(`${indent}${name}& ${funcPrefix}operator=(const ${name}& x);\n`);
+    //st.write(`${indent}${name}& ${funcPrefix}operator=(${name}&& x)${isCpp ? ' { p_ = std::move(x.p_); t_ = x.t_; return *this; }' : ';'}\n`);
     st.write(`\n`);
     for (const [i, typename] of types.entries()) {
       st.write(`${indent}${funcPrefix}${name}(${typename}&& value)${isCpp ? ':' : ';'}\n`)
@@ -67,7 +67,7 @@ function main() {
     }
     st.write(`\n`);
     if (!isCpp) {
-      st.write(`  std::unique_ptr<void, void(*)(void*)> p_;\n`);
+      st.write(`  std::shared_ptr<void> p_;\n`);
       st.write(`  char t_;\n`);
     }
     if (!isCpp) st.write(`};\n\n`);

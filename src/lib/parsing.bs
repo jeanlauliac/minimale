@@ -41,7 +41,6 @@
 %start unit
 
 %code requires {
-  #include "../../../src/lib/unit.h"
   #include "../../../src/lib/lang.h"
   #include <vector>
 }

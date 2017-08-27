@@ -1,12 +1,12 @@
 #include "../.build_files/src/lib/parsing.bs.hpp"
 #include "../.build_files/src/lib/lang_variants.json.h"
-#include "lib/unit.h"
 #include <iostream>
 #include <fstream>
 #include <map>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 
 extern FILE* yyin;
@@ -32,9 +32,9 @@ lang::unit read_store(const std::string file_path) {
 }
 
 struct component_structure {
-  std::map<std::string, type_annotation_id> state;
-  std::vector<size_t> mutators;
-  expression_id render;
+  std::map<std::string, lang::type_annot> state;
+  std::vector<lang::comp_func> mutators;
+  lang::expr render;
 };
 
 struct invalid_field_name_error {
@@ -42,36 +42,36 @@ struct invalid_field_name_error {
   std::string field_name;
 };
 
-component_structure get_structure(const store& st, const component& cp) {
+component_structure get_structure(const lang::comp& cp) {
   component_structure result;
-  for (const auto& s_id: cp.statements) {
-    if (s_id.type == component_statement_type::field) {
-      const auto& field = st.fields[s_id.value];
+  for (const auto& s: cp.stmts) {
+    if (s.is_comp_field()) {
+      const auto& field = s.as_comp_field();
       if (field.name == "state") {
-        if (field.type_annotation.type != type_annotation_type::object)
+        if (!field.type.is_obj_type_annot())
           throw std::runtime_error("`state` must be an object");
-        const auto& ot = st.object_type_annotations[field.type_annotation.value];
+        const auto& ot = field.type.as_obj_type_annot();
         for (const auto& otf: ot.fields) {
-          result.state[otf.name] = otf.type_annotation;
+          result.state[otf.name] = otf.type;
         }
         continue;
       }
       throw invalid_field_name_error(field.name);
     }
-    if (s_id.type == component_statement_type::function) {
-      const auto& fn = st.functions[s_id.value];
+    if (s.is_comp_func()) {
+      const auto& fn = s.as_comp_func();
       if (fn.name == "render") {
-        const auto& st_id = fn.statements[0];
-        if (st_id.type != function_statement_type::return_) {
+        const auto& fs = fn.stmts[0];
+        if (!fs.is_return_stmt()) {
           throw std::runtime_error("statement not supported");
         }
-        result.render = st.return_statements[st_id.value].expression;
-        if (fn.statements.size() > 1) {
+        result.render = fs.as_return_stmt().expr;
+        if (fn.stmts.size() > 1) {
           throw std::runtime_error("too many statements");
         }
         continue;
       }
-      result.mutators.push_back(s_id.value);
+      result.mutators.push_back(fn);
       continue;
     }
     throw std::runtime_error("invalid type");
@@ -81,17 +81,16 @@ component_structure get_structure(const store& st, const component& cp) {
 
 void write_state_type(
   const std::string& state_type_name,
-  const store& st,
   const component_structure& cs,
   std::ostream& os
 ) {
   os << "export type " << state_type_name << " = {" << std::endl;
   for (const auto& pair: cs.state) {
-    if (pair.second.type != type_annotation_type::literal) {
+    if (!pair.second.is_ltr_type_annot()) {
       throw std::runtime_error("cannot handle non-literal type annotations");
     }
-    const auto& tt = st.literal_type_annotations[pair.second.value];
-    os << "  " << pair.first << ": " << tt.identifier << ',' << std::endl;
+    const auto& tt = pair.second.as_ltr_type_annot();
+    os << "  " << pair.first << ": " << tt.ident << ',' << std::endl;
   }
   os << "}" << std::endl << std::endl;
 }
@@ -145,67 +144,74 @@ void write_text_node_creator(
     << "'));" << std::endl;
 }
 
-bool is_state(const store& st, const expression_id& xp) {
-  if (xp.type != expression_type::member_access) return false;
-  const auto& ma = st.member_accesses[xp.value];
-  if (ma.expression.type != expression_type::reference) return false;
-  if (ma.identifier != "state") return false;
-  const auto& ref = st.references[ma.expression.value];
-  return ref == "this";
+bool is_state(const lang::expr& xp) {
+  if (!xp.is_member_access()) return false;
+  const auto& ma = xp.as_member_access();
+  if (!ma.expr.is_ref()) return false;
+  if (ma.member != "state") return false;
+  return ma.expr.as_ref().ident == "this";
 }
 
 void write_node_creator(
-  const store& st,
-  const expression_id& xp,
+  const lang::expr& xp,
   const component_structure& cs,
   const std::string& indent,
   const std::string& root_var_name,
-  const std::unordered_set<size_t> member_tags,
+  const std::unordered_set<const lang::expr*> member_tags,
+  std::unordered_map<const lang::expr*, size_t> ids,
+  size_t& id_count,
   std::ostream& os
 ) {
-  if (xp.type == expression_type::reference) {
+  if (xp.is_ref()) {
     throw std::runtime_error("cannot handle references");
   }
-  if (xp.type == expression_type::member_access) {
-    const auto& ma = st.member_accesses[xp.value];
-    if (!is_state(st, ma.expression)) {
+  if (xp.is_member_access()) {
+    const auto& ma = xp.as_member_access();
+    if (!is_state(ma.expr)) {
       throw std::runtime_error("cannot handle other than `this.state`");
     }
-    if (cs.state.find(ma.identifier) == cs.state.end()) {
-      throw std::runtime_error("prop `" + ma.identifier + "` unknown");
+    if (cs.state.find(ma.member) == cs.state.end()) {
+      throw std::runtime_error("prop `" + ma.member + "` unknown");
     }
     os
       << indent << root_var_name
       << ".appendChild(d.createTextNode("
-      << "initialState." << ma.identifier
+      << "initialState." << ma.member
       << "));" << std::endl;
     return;
   }
-  if (xp.type == expression_type::string) {
-    const auto& str = st.strings[xp.value];
+  if (xp.is_ltr_string()) {
     os
       << indent << root_var_name
       << ".appendChild(d.createTextNode('"
-      << str
+      << xp.as_ltr_string().val
       << "'));" << std::endl;
     return;
   }
-  const auto is_member = member_tags.count(xp.value) > 0;
+  const auto is_member = member_tags.count(&xp) > 0;
+  const auto idi = ids.find(&xp);
+  size_t id;
+  if (idi == ids.cend()) {
+    ids.insert({ &xp, id_count++ });
+    id = id_count;
+  } else {
+    id = idi->second;
+  }
   const auto var_name =
-    std::string(is_member ? "this." : "") + "e" + std::to_string(xp.value);
-  const auto& tag = st.xml_tags[xp.value];
+    std::string(is_member ? "this." : "") + "e" + std::to_string(id);
+  const auto& tag = xp.as_xml_tag();
   os << indent;
   if (!is_member) os << "const ";
   os
     << var_name << " = d.createElement('"
-      << tag.tag_name << "');" << std::endl
+      << tag.name << "');" << std::endl
     << indent << root_var_name << ".appendChild(" << var_name << ");"
       << std::endl;
   std::ostringstream text_acc;
   bool keep_front_ws = false;
-  for (const auto& frg: tag.fragments) {
-    if (frg.type == xml_fragment_type::text) {
-      text_acc << st.xml_text_fragments[frg.value];
+  for (const auto& frg: tag.frags) {
+    if (frg.is_xml_text()) {
+      text_acc << frg.as_xml_text().val;
       continue;
     }
     if (!text_acc.str().empty()) {
@@ -213,11 +219,11 @@ void write_node_creator(
       text_acc.str("");
       text_acc.clear();
     }
-    if (frg.type != xml_fragment_type::interpolation) {
+    if (!frg.is_xml_interp()) {
       throw std::runtime_error("invalid fragment");
     }
-    const auto& ixp = st.xml_interpolations[frg.value];
-    write_node_creator(st, ixp, cs, indent, var_name, member_tags, os);
+    const auto& ixp = frg.as_xml_interp();
+    write_node_creator(ixp.expr, cs, indent, var_name, member_tags, ids, id_count, os);
     keep_front_ws = true;
   }
   if (!text_acc.str().empty()) {
@@ -226,13 +232,12 @@ void write_node_creator(
 }
 
 void write_unmount_function(
-  const store& st,
-  const expression_id& xp,
+  size_t xp_id,
   const component_structure& cs,
   const std::string& indent,
   std::ostream& os
 ) {
-  auto id = std::to_string(xp.value);
+  auto id = std::to_string(xp_id);
   os
     << indent << "if (this.root == null) return;" << std::endl
     << indent << "this.root.removeChild(this.e" << id
@@ -242,13 +247,11 @@ void write_unmount_function(
 }
 
 void write_mutator(
-  const store& st,
   const component_structure& cs,
   const std::string& indent,
-  size_t function_id,
+  const lang::comp_func& fn,
   std::ostream& os
 ) {
-  const auto& fn = st.functions[function_id];
   os
     << indent << fn.name << "(" << ") {" << std::endl
     << indent << "  ;" << std::endl
@@ -256,51 +259,53 @@ void write_mutator(
 }
 
 void write_mutators(
-  const store& st,
   const component_structure& cs,
   const std::string& indent,
   std::ostream& os
 ) {
-  for (size_t mutator: cs.mutators) {
+  for (const auto& mutator: cs.mutators) {
     os << std::endl;
-    write_mutator(st, cs, indent, mutator, os);
+    write_mutator(cs, indent, mutator, os);
   }
 }
 
-void write_typescript(const store& st, std::ostream& os) {
+void write_typescript(const lang::unit& ut, std::ostream& os) {
   os
     << "/* Generated with the `minimale` tool. */" << std::endl
     << std::endl;
-  for (auto st_id: st.unit.statements) {
-    if (st_id.type == statement_type::component) {
-      const auto& cp = st.components[st_id.value];
-      auto cs = get_structure(st, cp);
-      auto state_type_name = cp.name + "State";
-      write_state_type(state_type_name, st, cs, os);
-      std::unordered_set<size_t> member_tags = {cs.render.value};
-      os
-        << "export default class " << cp.name << " {" << std::endl
-        << "  private root: HTMLElement;" << std::endl;
-      for (auto mt: member_tags) {
-        os
-          << "  private e" << std::to_string(mt)
-          << ": HTMLElement;" << std::endl;
-      }
-      os
-        << std::endl
-        << "  constructor(root: HTMLElement, initialState: "
-          << state_type_name << ") {" << std::endl
-        << "    this.root = root;" << std::endl
-        << "    const d = root.ownerDocument;" << std::endl;
-      write_node_creator(st, cs.render, cs, "    ", "root", member_tags, os);
-      os
-        << "  }" << std::endl << std::endl
-        << "  unmount(): void {" << std::endl;
-      write_unmount_function(st, cs.render, cs, "    ", os);
-      os << "  }" << std::endl;
-      write_mutators(st, cs, "  ", os);
-      os << "}" << std::endl;
+  for (auto st: ut.stmts) {
+    if (!st.is_comp()) {
+      continue;
     }
+    const auto& cp = st.as_comp();
+    auto cs = get_structure(cp);
+    auto state_type_name = cp.name + "State";
+    write_state_type(state_type_name, cs, os);
+    std::unordered_map<const lang::expr*, size_t> ids = { { &cs.render, 1 } };
+    std::unordered_set<const lang::expr*> member_tags = { &cs.render };
+    size_t id_count = 1;
+    os
+      << "export default class " << cp.name << " {" << std::endl
+      << "  private root: HTMLElement;" << std::endl;
+    for (auto mt: member_tags) {
+      os
+        << "  private e" << std::to_string(ids.at(mt))
+        << ": HTMLElement;" << std::endl;
+    }
+    os
+      << std::endl
+      << "  constructor(root: HTMLElement, initialState: "
+        << state_type_name << ") {" << std::endl
+      << "    this.root = root;" << std::endl
+      << "    const d = root.ownerDocument;" << std::endl;
+    write_node_creator(cs.render, cs, "    ", "root", member_tags, ids, id_count, os);
+    os
+      << "  }" << std::endl << std::endl
+      << "  unmount(): void {" << std::endl;
+    write_unmount_function(1, cs, "    ", os);
+    os << "  }" << std::endl;
+    write_mutators(cs, "  ", os);
+    os << "}" << std::endl;
   }
 }
 
@@ -308,12 +313,12 @@ int run(int argc, char *argv[]) {
   if (argc < 5) {
     throw std::runtime_error("input file must be specified");
   }
-  store st = read_store(argv[1]);
+  lang::unit ut = read_store(argv[1]);
   std::ofstream of;
   of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   of.open(argv[2]);
   try {
-    write_typescript(st, of);
+    write_typescript(ut, of);
   } catch (invalid_field_name_error er) {
     std::cerr
       << "fatal: invalid field name `"

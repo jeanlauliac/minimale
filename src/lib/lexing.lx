@@ -1,7 +1,6 @@
 %option noyywrap nounput batch noinput
 %{
 #include "parsing.bs.hpp"
-#include "../../../src/lib/unit.h"
 #include <iostream>
 #include <sstream>
 using namespace std;
