@@ -204,9 +204,7 @@ void write_node_creator(
   if (!is_member) os << "const ";
   os
     << var_name << " = d.createElement('"
-      << tag.name << "');" << std::endl
-    << indent << root_var_name << ".appendChild(" << var_name << ");"
-      << std::endl;
+      << tag.name << "');" << std::endl;
   std::ostringstream text_acc;
   bool keep_front_ws = false;
   for (const auto& frg: tag.frags) {
@@ -229,6 +227,9 @@ void write_node_creator(
   if (!text_acc.str().empty()) {
     write_text_node_creator(var_name, indent, text_acc.str(), keep_front_ws, false, os);
   }
+  os
+    << indent << root_var_name << ".appendChild(" << var_name << ");"
+    << std::endl;
 }
 
 void write_unmount_function(
