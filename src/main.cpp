@@ -15,7 +15,7 @@ namespace minimale {
 
 typedef std::unique_ptr<FILE, decltype(&fclose)> unique_file;
 
-lang::unit read_store(const std::string file_path) {
+lang::unit read_unit(const std::string file_path) {
   unique_file file(fopen(file_path.c_str(), "r"), fclose);
   if (!file) {
     throw std::runtime_error("cannot open file: " + file_path);
@@ -313,7 +313,7 @@ int run(int argc, char *argv[]) {
   if (argc < 5) {
     throw std::runtime_error("input file must be specified");
   }
-  lang::unit ut = read_store(argv[1]);
+  lang::unit ut = read_unit(argv[1]);
   std::ofstream of;
   of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   of.open(argv[2]);
