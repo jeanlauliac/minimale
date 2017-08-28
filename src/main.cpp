@@ -152,6 +152,22 @@ bool is_state(const lang::expr& xp) {
   return ma.expr.as_ref().ident == "this";
 }
 
+namespace ts {
+
+std::ostream& write_ltr_string(const std::string val, std::ostream& os) {
+  os << "'";
+  for (char c: val) {
+    if (c == '\'') {
+      os << "\\'";
+    } else {
+      os << c;
+    }
+  }
+  return os << "'";
+}
+
+}
+
 void write_node_creator(
   const lang::expr& xp,
   const component_structure& cs,
@@ -195,17 +211,18 @@ void write_node_creator(
     if (is_member) {
       os
         << indent << var_name
-        << " = d.createTextNode('" << xp.as_ltr_string().val
-        << "');" << std::endl;
+        << " = d.createTextNode(";
+      ts::write_ltr_string(xp.as_ltr_string().val, os)
+        << ");" << std::endl;
       os
         << indent << root_var_name << ".appendChild(" << var_name << ");"
         << std::endl;
     } else {
       os
         << indent << root_var_name
-        << ".appendChild(d.createTextNode('"
-        << xp.as_ltr_string().val
-        << "'));" << std::endl;
+        << ".appendChild(d.createTextNode(";
+      ts::write_ltr_string(xp.as_ltr_string().val, os)
+        << "));" << std::endl;
     }
     return;
   }

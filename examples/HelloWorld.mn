@@ -9,7 +9,7 @@ export default component HelloWorld {
       <p>
         Hello, <b>{this.state.name}</b>!
         <br />
-        <span>{'Foo'}.</span>
+        <span>{'Foo'} 🐠</span>
       </p>;
   }
 
