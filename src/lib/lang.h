@@ -59,7 +59,7 @@ struct return_stmt {
 
 struct assignment {
   expr assigned;
-  expr value;
+  expr val;
 };
 
 struct ref {
