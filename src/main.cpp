@@ -31,6 +31,10 @@ lang::unit read_unit(const std::string file_path) {
   return unit;
 }
 
+/**
+ * Use pointers to avoid doing copies. Require the syntax tree to be kept
+ * alive while this is used.
+ */
 struct component_structure {
   std::map<std::string, const lang::type_annot*> state;
   std::vector<const lang::comp_func*> mutators;
