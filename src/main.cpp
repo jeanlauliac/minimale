@@ -32,9 +32,9 @@ lang::unit read_unit(const std::string file_path) {
 }
 
 struct component_structure {
-  std::map<std::string, lang::type_annot> state;
-  std::vector<lang::comp_func> mutators;
-  lang::expr render;
+  std::map<std::string, const lang::type_annot*> state;
+  std::vector<const lang::comp_func*> mutators;
+  const lang::expr* render;
 };
 
 struct invalid_field_name_error {
@@ -52,7 +52,7 @@ component_structure get_structure(const lang::comp& cp) {
           throw std::runtime_error("`state` must be an object");
         const auto& ot = field.type.as_obj_type_annot();
         for (const auto& otf: ot.fields) {
-          result.state[otf.name] = otf.type;
+          result.state[otf.name] = &otf.type;
         }
         continue;
       }
@@ -65,13 +65,13 @@ component_structure get_structure(const lang::comp& cp) {
         if (!fs.is_return_stmt()) {
           throw std::runtime_error("statement not supported");
         }
-        result.render = fs.as_return_stmt().expr;
+        result.render = &fs.as_return_stmt().expr;
         if (fn.stmts.size() > 1) {
           throw std::runtime_error("too many statements");
         }
         continue;
       }
-      result.mutators.push_back(fn);
+      result.mutators.push_back(&fn);
       continue;
     }
     throw std::runtime_error("invalid type");
@@ -86,10 +86,10 @@ void write_state_type(
 ) {
   os << "export type " << state_type_name << " = {" << std::endl;
   for (const auto& pair: cs.state) {
-    if (!pair.second.is_ltr_type_annot()) {
+    if (!pair.second->is_ltr_type_annot()) {
       throw std::runtime_error("cannot handle non-literal type annotations");
     }
-    const auto& tt = pair.second.as_ltr_type_annot();
+    const auto& tt = pair.second->as_ltr_type_annot();
     os << "  " << pair.first << ": " << tt.ident << ',' << std::endl;
   }
   os << "}" << std::endl << std::endl;
@@ -294,7 +294,7 @@ void write_mutators(
 ) {
   for (const auto& mutator: cs.mutators) {
     os << std::endl;
-    write_mutator(cs, indent, mutator, os);
+    write_mutator(cs, indent, *mutator, os);
   }
 }
 
@@ -310,8 +310,8 @@ void write_typescript(const lang::unit& ut, std::ostream& os) {
     auto cs = get_structure(cp);
     auto state_type_name = cp.name + "State";
     write_state_type(state_type_name, cs, os);
-    std::unordered_map<const lang::expr*, size_t> ids = { { &cs.render, 1 } };
-    std::unordered_set<const lang::expr*> member_tags = { &cs.render };
+    std::unordered_map<const lang::expr*, size_t> ids = { { cs.render, 1 } };
+    std::unordered_set<const lang::expr*> member_tags = { cs.render };
     size_t id_count = 1;
     os
       << "export default class " << cp.name << " {" << std::endl
@@ -327,7 +327,7 @@ void write_typescript(const lang::unit& ut, std::ostream& os) {
         << state_type_name << ") {" << std::endl
       << "    this.root = root;" << std::endl
       << "    const d = root.ownerDocument;" << std::endl;
-    write_node_creator(cs.render, cs, "    ", "root", member_tags, ids, id_count, os);
+    write_node_creator(*cs.render, cs, "    ", "root", member_tags, ids, id_count, os);
     os
       << "  }" << std::endl << std::endl
       << "  unmount(): void {" << std::endl;
