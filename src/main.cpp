@@ -162,6 +162,17 @@ void write_node_creator(
   size_t& id_count,
   std::ostream& os
 ) {
+  const auto is_member = member_tags.count(&xp) > 0;
+  const auto idi = ids.find(&xp);
+  size_t id;
+  if (idi == ids.cend()) {
+    ids.insert({ &xp, id_count++ });
+    id = id_count;
+  } else {
+    id = idi->second;
+  }
+  const auto var_name =
+    std::string(is_member ? "this." : "") + "e" + std::to_string(id);
   if (xp.is_ref()) {
     throw std::runtime_error("cannot handle references");
   }
@@ -181,24 +192,24 @@ void write_node_creator(
     return;
   }
   if (xp.is_ltr_string()) {
-    os
-      << indent << root_var_name
-      << ".appendChild(d.createTextNode('"
-      << xp.as_ltr_string().val
-      << "'));" << std::endl;
+    if (is_member) {
+      os
+        << indent << var_name
+        << " = d.createTextNode('" << xp.as_ltr_string().val
+        << "');" << std::endl;
+      os
+        << indent << root_var_name << ".appendChild(" << var_name << ");"
+        << std::endl;
+    } else {
+      os
+        << indent << root_var_name
+        << ".appendChild(d.createTextNode('"
+        << xp.as_ltr_string().val
+        << "'));" << std::endl;
+    }
     return;
   }
-  const auto is_member = member_tags.count(&xp) > 0;
-  const auto idi = ids.find(&xp);
-  size_t id;
-  if (idi == ids.cend()) {
-    ids.insert({ &xp, id_count++ });
-    id = id_count;
-  } else {
-    id = idi->second;
-  }
-  const auto var_name =
-    std::string(is_member ? "this." : "") + "e" + std::to_string(id);
+  if (!xp.is_xml_tag()) throw std::runtime_error("unexpected expression");
   const auto& tag = xp.as_xml_tag();
   os << indent;
   if (!is_member) os << "const ";
@@ -291,7 +302,7 @@ void write_typescript(const lang::unit& ut, std::ostream& os) {
     for (auto mt: member_tags) {
       os
         << "  private e" << std::to_string(ids.at(mt))
-        << ": HTMLElement;" << std::endl;
+        << ": Node;" << std::endl;
     }
     os
       << std::endl
