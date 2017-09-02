@@ -309,6 +309,13 @@ void write_node_creator(
   os
     << var_name << " = d.createElement('"
       << tag.name << "');" << std::endl;
+  for (const auto& attr_pair: tag.attrs) {
+    if (!attr_pair.second.is_ltr_string())
+      throw std::runtime_error("unsupported attr value");
+    os << indent << var_name << "." << attr_pair.first << " = ";
+    ts::write_ltr_string(attr_pair.second.as_ltr_string().val, os)
+      << ";" << std::endl;
+  }
   std::ostringstream text_acc;
   bool keep_front_ws = false;
   for (const auto& frg: tag.frags) {
@@ -419,8 +426,13 @@ void write_typescript(const lang::unit& ut, std::ostream& os) {
       << "  private root: HTMLElement;" << std::endl;
     for (auto mt: member_tags) {
       os
-        << "  private e" << std::to_string(get_expr_id(ids, *mt))
-        << ": Node;" << std::endl;
+        << "  private e" << std::to_string(get_expr_id(ids, *mt)) << ": ";
+      if (mt->is_ltr_string() || mt->is_ref() || mt->is_member_access()) {
+        os << "Node";
+      } else {
+        os << "HTMLElement";
+      }
+      os << ";" << std::endl;
     }
     os
       << std::endl

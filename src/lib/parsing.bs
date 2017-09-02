@@ -36,7 +36,7 @@
 %type <std::vector<minimale::lang::xml_frag>> xml_fragments
 %type <minimale::lang::xml_frag> xml_fragment
 %type <minimale::lang::expr> xml_interpolation
-%type <std::vector<minimale::lang::xml_attr>> xml_attrs
+%type <std::map<std::string, minimale::lang::expr>> xml_attrs
 %type <minimale::lang::expr> xml_attr_value
 
 %param { minimale::lang::unit& unit }
@@ -195,9 +195,14 @@ xml_interpolation:
 
 xml_attrs:
     xml_attrs IDENTIFIER[name] '=' xml_attr_value[value]
-    { ($$ = std::move($1)).push_back(
-      xml_attr { std::move($name), std::move($value) }
-    ); }
+    {
+      auto& attrs = ($$ = std::move($1));
+      auto& name = $name;
+      if (attrs.count(name) > 0) {
+        throw std::runtime_error("duplicate attribute: `" + name + "`");
+      }
+      attrs.emplace(std::move(name), std::move($value));
+    }
   | %empty {};
 
 xml_attr_value:

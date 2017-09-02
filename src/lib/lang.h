@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../../.build_files/src/lib/lang_variants.json.h"
-#include <vector>
+#include <map>
 #include <string>
+#include <vector>
 
 namespace minimale {
 namespace lang {
@@ -46,7 +47,7 @@ struct xml_attr {
 
 struct xml_tag {
   std::string name;
-  std::vector<xml_attr> attrs;
+  std::map<std::string, minimale::lang::expr> attrs;
   std::vector<xml_frag> frags;
 };
 
