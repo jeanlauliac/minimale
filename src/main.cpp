@@ -38,6 +38,7 @@ struct mut_inst {
 
 struct comp_mutator {
   std::string name;
+  const std::vector<lang::func_arg>* args;
   std::vector<mut_inst> insts;
 };
 
@@ -131,6 +132,7 @@ component_structure get_structure(
   for (auto mutator: mutators) {
     comp_mutator mt;
     mt.name = mutator->name;
+    mt.args = &mutator->args;
     for (const auto& stmt: mutator->stmts) {
       if (!stmt.is_assignment()) {
         throw std::runtime_error("statement not supported");
@@ -357,7 +359,15 @@ void write_mutator(
   std::unordered_map<const lang::expr*, size_t>& ids,
   std::ostream& os
 ) {
-  os << indent << mut.name << "(" << ") {" << std::endl;
+  os << indent << mut.name << "(";
+  for (const auto& arg: *mut.args) {
+    os << arg.name << ": ";
+    if (!arg.type.is_ltr_type_annot()) {
+      throw std::runtime_error("cannot handle non-literal type annotations");
+    }
+    os << arg.type.as_ltr_type_annot().ident << ", ";
+  }
+  os << ") {" << std::endl;
   for (const auto& inst: mut.insts) {
     auto id = std::to_string(get_expr_id(ids, *inst.target));
     os << indent << "  this.e" << id << ".nodeValue = ";
