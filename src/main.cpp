@@ -48,7 +48,7 @@ struct comp_mutator {
  */
 struct component_structure {
   std::map<std::string, const lang::type_annot*> state;
-  std::vector<comp_mutator> mutators;
+  std::map<std::string, comp_mutator> mutators;
   const lang::expr* render;
 };
 
@@ -146,7 +146,7 @@ component_structure get_structure(
         throw std::runtime_error("unknown state member");
       get_assignment_insts(*result.render, ma.member, asg.val, mt.insts, member_tags);
     }
-    result.mutators.push_back(mt);
+    result.mutators.insert({ mutator->name, mt });
   }
   return result;
 }
@@ -376,8 +376,14 @@ void write_mutator(
   for (const auto& inst: mut.insts) {
     auto id = std::to_string(get_expr_id(ids, *inst.target));
     os << indent << "  this.e" << id << ".nodeValue = ";
-    if (!inst.val->is_ref()) throw std::runtime_error("nope");
-    os << inst.val->as_ref().ident << ";" << std::endl;
+    if (inst.val->is_ref()) {
+      os << inst.val->as_ref().ident;
+    } else if (inst.val->is_ltr_string()) {
+      ts::write_ltr_string(inst.val->as_ltr_string().val, os);
+    } else {
+      throw std::runtime_error("cannot handle this mutation instruction expr");
+    }
+    os << ";" << std::endl;
   }
   os << indent << "}" << std::endl;
 }
@@ -388,9 +394,9 @@ void write_mutators(
   std::unordered_map<const lang::expr*, size_t>& ids,
   std::ostream& os
 ) {
-  for (const auto& mutator: cs.mutators) {
+  for (const auto& mt_pair: cs.mutators) {
     os << std::endl;
-    write_mutator(cs, indent, mutator, ids, os);
+    write_mutator(cs, indent, mt_pair.second, ids, os);
   }
 }
 

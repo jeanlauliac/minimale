@@ -9,11 +9,15 @@ export default component HelloWorld {
       <p>
         Hello, <b>{this.state.name}</b>!
         <br />
-        <span>{'Foo'} 🐠</span>
+        <span>{'Foo!'} {this.state.name} 🐠</span>
       </p>;
   }
 
   rename(name: string) {
     this.state.name = name;
+  }
+
+  foobar() {
+    this.state.name = 'ahah';
   }
 }
