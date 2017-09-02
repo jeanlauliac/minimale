@@ -36,6 +36,8 @@
 %type <std::vector<minimale::lang::xml_frag>> xml_fragments
 %type <minimale::lang::xml_frag> xml_fragment
 %type <minimale::lang::expr> xml_interpolation
+%type <std::vector<minimale::lang::xml_attr>> xml_attrs
+%type <minimale::lang::expr> xml_attr_value
 
 %param { minimale::lang::unit& unit }
 %start unit
@@ -149,7 +151,7 @@ xml_expression: matched_xml_tag { $$ = std::move($1); };
  * See http://www.gnu.org/software/bison/manual/bison.html#Lexical-Tie_002dins
  */
 matched_xml_tag:
-  '<' IDENTIFIER[tag_name] '>' { yyxmltext = true; }
+  '<' IDENTIFIER[tag_name] xml_attrs[attrs] '>' { yyxmltext = true; }
   xml_fragments[frs]
   '<' '/' IDENTIFIER[end_name] '>'
   {
@@ -158,7 +160,7 @@ matched_xml_tag:
       // Should be made to report line/column, etc.
       throw std::runtime_error("mismatched tags");
     }
-    $$ = xml_tag { std::move(tag_name), std::move($frs) };
+    $$ = xml_tag { std::move(tag_name), std::move($attrs), std::move($frs) };
   };
 
 xml_fragments:
@@ -168,7 +170,7 @@ xml_fragments:
 xml_fragment:
     XML_TEXT_FRAGMENT { $$ = xml_text { std::move($1) }; }
   | xml_interpolation { $$ = xml_interp { std::move($1) }; };
-  | '<' IDENTIFIER[tag_name] '>' { yyxmltext = true; }
+  | '<' IDENTIFIER[tag_name] xml_attrs[attrs] '>' { yyxmltext = true; }
     xml_fragments[frs]
     '<' '/' IDENTIFIER[end_name] '>' {
       yyxmltext = true;
@@ -177,17 +179,30 @@ xml_fragment:
         // Should be made to report line/column, etc.
         throw std::runtime_error("mismatched tags");
       }
-      $$ = xml_interp { xml_tag { tag_name, std::move($frs) } };
+      $$ = xml_interp {
+        xml_tag { tag_name, std::move($attrs), std::move($frs) }
+      };
     }
-  | '<' IDENTIFIER[tag_name] '/' '>' {
+  | '<' IDENTIFIER[tag_name] xml_attrs[attrs] '/' '>' {
       yyxmltext = true;
       const auto& tag_name = $tag_name;
-      $$ = xml_interp { xml_tag { tag_name, {} } };
+      $$ = xml_interp { xml_tag { tag_name, std::move($attrs), {} } };
     };
 
 xml_interpolation:
   '{' { yyxmltext = false; } expression[exp] '}' { yyxmltext = true; }
   { $$ = std::move($exp); };
+
+xml_attrs:
+    xml_attrs IDENTIFIER[name] '=' xml_attr_value[value]
+    { ($$ = std::move($1)).push_back(
+      xml_attr { std::move($name), std::move($value) }
+    ); }
+  | %empty {};
+
+xml_attr_value:
+    STRING { $$ = ltr_string { std::move($1) }; }
+  | '{' expression '}' { $$ = std::move($2); };
 
 %%
 

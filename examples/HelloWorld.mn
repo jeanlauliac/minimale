@@ -10,6 +10,7 @@ export default component HelloWorld {
         Hello, <b>{this.state.name}</b>!
         <br />
         <span>{'Foo!'} {this.state.name} 🐠</span>
+        <input type='text'></input>
       </p>;
   }
 

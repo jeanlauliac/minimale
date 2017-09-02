@@ -38,7 +38,17 @@ struct unit {
 
 struct xml_text { std::string val; };
 struct xml_interp { expr expr; };
-struct xml_tag { std::string name; std::vector<xml_frag> frags; };
+
+struct xml_attr {
+  std::string name;
+  expr val;
+};
+
+struct xml_tag {
+  std::string name;
+  std::vector<xml_attr> attrs;
+  std::vector<xml_frag> frags;
+};
 
 struct obj_type_field {
   std::string name;
