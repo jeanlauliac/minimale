@@ -341,14 +341,19 @@ void write_unmount_function(
   const component_structure& cs,
   const std::string& indent,
   std::unordered_map<const lang::expr*, size_t>& ids,
+  const std::unordered_set<const lang::expr*> member_tags,
   std::ostream& os
 ) {
   auto id = std::to_string(get_expr_id(ids, xp));
   os
-    << indent << "if (this.root == null) return;" << std::endl
     << indent << "this.root.removeChild(this.e" << id
-    << ");" << std::endl
-    << indent << "this.e" << id << " = null;" << std::endl
+    << ");" << std::endl;
+  for (auto expr: member_tags) {
+    os
+      << indent << "this.e" << std::to_string(get_expr_id(ids, *expr))
+      << " = null;" << std::endl;
+  }
+  os
     << indent << "this.root = null;" << std::endl;
 }
 
@@ -421,7 +426,7 @@ void write_typescript(const lang::unit& ut, std::ostream& os) {
     os
       << "  }" << std::endl << std::endl
       << "  unmount(): void {" << std::endl;
-    write_unmount_function(*cs.render, cs, "    ", ids, os);
+    write_unmount_function(*cs.render, cs, "    ", ids, member_tags, os);
     os << "  }" << std::endl;
     write_mutators(cs, "  ", ids, os);
     os << "}" << std::endl;
