@@ -4,7 +4,7 @@ const {Manifest} = require('@jeanlauliac/upd-configure');
 const {execSync} = require('child_process');
 
 const manifest = new Manifest();
-const BUILD_DIR = '.build_files';
+const BUILD_DIR = 'gen';
 
 function getFlexCli() {
   const binPath = execSync('which flex', {encoding: 'utf8'}).split('\n')[0];
@@ -50,7 +50,9 @@ const compiled_variant_cpp_files = manifest.rule(variant_cli, [
   manifest.source("(src/lib/lang_variants.json)"),
 ], `${BUILD_DIR}/($1).cpp`);
 
-const compile_cpp_cli = manifest.cli_template('clang++', [
+const clangPath = execSync('which clang++', {encoding: 'utf8'}).split('\n')[0];
+
+const compile_cpp_cli = manifest.cli_template(clangPath, [
   {literals: ["-c", "-o"], variables: ["output_file"]},
   {
     literals: ["-std=c++14", "-Wall", "-fcolor-diagnostics", "-MMD", "-MF"],
@@ -67,7 +69,7 @@ const compiled_cpp_files = manifest.rule(compile_cpp_cli, [
   compiled_variant_cpp_files,
 ], `${BUILD_DIR}/($1).o`, [compiled_bison_files, compiled_variant_h_files]);
 
-const compile_flex_cpp_cli = manifest.cli_template('clang++', [
+const compile_flex_cpp_cli = manifest.cli_template(clangPath, [
   {literals: ["-c", "-o"], variables: ["output_file"]},
   {
     literals: ["-std=c++14", "-Wall", "-Wno-deprecated-register",
@@ -90,7 +92,7 @@ const compiled_bison_cpp_files = manifest.rule(compile_flex_cpp_cli, [
 ], `${BUILD_DIR}/($1).o`, [compiled_variant_h_files]);
 
 const minimale_binary = manifest.rule(
-  manifest.cli_template('clang++', [
+  manifest.cli_template(clangPath, [
     {literals: ["-o"], variables: ["output_file"]},
     {
       literals: ['-Wall', '-std=c++14',
@@ -125,7 +127,7 @@ manifest.rule(
 );
 
 manifest.rule(
-  manifest.cli_template('cp', [{variables: ["input_files", "output_file"]}]),
+  manifest.cli_template('/bin/cp', [{variables: ["input_files", "output_file"]}]),
   [manifest.source('examples/(*.html)')],
   `dist/example/$1`
 );

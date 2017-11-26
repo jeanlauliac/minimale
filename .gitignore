@@ -1,4 +1,4 @@
 /dist
-/.build_files
+/gen
 /.upd
 /node_modules

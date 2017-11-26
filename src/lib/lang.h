@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../.build_files/src/lib/lang_variants.json.h"
+#include "../../gen/src/lib/lang_variants.json.h"
 #include <map>
 #include <string>
 #include <vector>

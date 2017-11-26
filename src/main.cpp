@@ -1,5 +1,5 @@
-#include "../.build_files/src/lib/parsing.bs.hpp"
-#include "../.build_files/src/lib/lang_variants.json.h"
+#include "../gen/src/lib/parsing.bs.hpp"
+#include "../gen/src/lib/lang_variants.json.h"
 #include <iostream>
 #include <fstream>
 #include <map>
