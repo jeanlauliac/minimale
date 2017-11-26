@@ -6,7 +6,7 @@
   "author": "Jean Lauliac <jean@lauliac.com>",
   "license": "MIT",
   "dependencies": {
-    "@jeanlauliac/upd": "^0.3.6",
+    "@jeanlauliac/upd": "0.6.0",
     "@jeanlauliac/upd-configure": "^0.1.0"
   },
   "devDependencies": {
